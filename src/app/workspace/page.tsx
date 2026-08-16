@@ -93,19 +93,27 @@ export default function WorkspaceAdminPage() {
     setPublishedArticles(getAllArticlesForAdmin());
     setDynamicArticles(getDynamicArticles());
 
-    // Sync remote Firestore articles
-    syncFromFirestore().then(() => {
-      setPublishedArticles(getAllArticlesForAdmin());
-      setDynamicArticles(getDynamicArticles());
-      setAllowedEmails(getAllowedAdminEmails());
-    });
-
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(AUTH_STORAGE_KEY);
       if (saved && allowed.includes(saved.toLowerCase())) {
         setAuthenticatedEmail(saved);
       }
     }
+
+    // Sync remote Firestore articles & emails
+    syncFromFirestore().then(() => {
+      const freshAllowed = getAllowedAdminEmails();
+      setPublishedArticles(getAllArticlesForAdmin());
+      setDynamicArticles(getDynamicArticles());
+      setAllowedEmails(freshAllowed);
+
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (saved && freshAllowed.includes(saved.toLowerCase())) {
+          setAuthenticatedEmail(saved);
+        }
+      }
+    });
   }, []);
 
   // Handle Login Verification (Instant)

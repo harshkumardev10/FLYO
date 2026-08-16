@@ -9,14 +9,36 @@ export const DEFAULT_ALLOWED_EMAILS = [
   MAIN_ADMIN_EMAIL,
 ];
 
-// In-Memory Firebase Cache (Synced directly with Firestore)
-let firestoreArticlesCache: ArticleItem[] = [];
-let hiddenSlugsCache: string[] = [];
-let allowedEmailsCache: string[] = [...DEFAULT_ALLOWED_EMAILS];
-let isInitialized = false;
+const STORAGE_KEYS = {
+  ALLOWED_EMAILS: 'flyo_allowed_admin_emails_v3',
+  DYNAMIC_ARTICLES: 'flyo_dynamic_articles_v3',
+  HIDDEN_SLUGS: 'flyo_hidden_slugs_v3',
+};
+
+function readLocal<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function writeLocal<T>(key: string, data: T): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {}
+}
+
+// In-Memory & Local Storage Cache (Synced live with Firebase Firestore)
+let firestoreArticlesCache: ArticleItem[] = readLocal<ArticleItem[]>(STORAGE_KEYS.DYNAMIC_ARTICLES, []);
+let hiddenSlugsCache: string[] = readLocal<string[]>(STORAGE_KEYS.HIDDEN_SLUGS, []);
+let allowedEmailsCache: string[] = readLocal<string[]>(STORAGE_KEYS.ALLOWED_EMAILS, [...DEFAULT_ALLOWED_EMAILS]);
 
 /**
- * Fetch fresh data directly from Firebase Firestore
+ * Fetch fresh data directly from Firebase Firestore and update local cache
  */
 export async function syncFromFirestore(): Promise<void> {
   if (!db) return;
@@ -25,16 +47,14 @@ export async function syncFromFirestore(): Promise<void> {
     const articlesSnapshot = await getDocs(collection(db, 'articles'));
     if (!articlesSnapshot.empty) {
       firestoreArticlesCache = articlesSnapshot.docs.map(docSnap => docSnap.data() as ArticleItem);
-    } else {
-      firestoreArticlesCache = [];
+      writeLocal(STORAGE_KEYS.DYNAMIC_ARTICLES, firestoreArticlesCache);
     }
 
     // 2. Fetch hidden slugs from Firebase Firestore
     const hiddenSnapshot = await getDocs(collection(db, 'hidden_slugs'));
     if (!hiddenSnapshot.empty) {
       hiddenSlugsCache = hiddenSnapshot.docs.map(docSnap => docSnap.id);
-    } else {
-      hiddenSlugsCache = [];
+      writeLocal(STORAGE_KEYS.HIDDEN_SLUGS, hiddenSlugsCache);
     }
 
     // 3. Fetch allowed partner emails directly from Firebase Firestore
@@ -43,26 +63,26 @@ export async function syncFromFirestore(): Promise<void> {
       const data = emailsDoc.data();
       if (Array.isArray(data.emails)) {
         allowedEmailsCache = Array.from(new Set([MAIN_ADMIN_EMAIL.toLowerCase(), ...data.emails.map((e: string) => String(e).toLowerCase())]));
+        writeLocal(STORAGE_KEYS.ALLOWED_EMAILS, allowedEmailsCache);
       }
     } else {
       // If allowed_emails document doesn't exist in Firebase Firestore yet, write initial list to Firebase
       await setDoc(doc(db, 'settings', 'allowed_emails'), { emails: allowedEmailsCache });
     }
-    isInitialized = true;
   } catch (err) {
     console.error('Firebase Firestore sync error:', err);
   }
 }
 
 /**
- * Get ONLY dynamically uploaded articles from Firebase Cache
+ * Get ONLY dynamically uploaded articles
  */
 export function getDynamicArticles(): ArticleItem[] {
   return firestoreArticlesCache;
 }
 
 /**
- * Get slugs of statically-hidden (soft-deleted) articles from Firebase Cache
+ * Get slugs of statically-hidden (soft-deleted) articles
  */
 export function getHiddenSlugs(): string[] {
   return hiddenSlugsCache;
@@ -100,11 +120,22 @@ export function getAllArticlesForAdmin(): ArticleItem[] {
 }
 
 /**
- * Save / Publish an article directly to Firebase Firestore
+ * Save / Publish an article directly to Firebase Firestore & local cache
  */
 export async function saveArticle(article: ArticleItem): Promise<boolean> {
-  // Update in-memory Firebase cache immediately
+  // Update in-memory & local storage cache immediately
   firestoreArticlesCache = [article, ...firestoreArticlesCache.filter(a => a.slug !== article.slug)];
+  writeLocal(STORAGE_KEYS.DYNAMIC_ARTICLES, firestoreArticlesCache);
+
+  if (hiddenSlugsCache.includes(article.slug)) {
+    hiddenSlugsCache = hiddenSlugsCache.filter(s => s !== article.slug);
+    writeLocal(STORAGE_KEYS.HIDDEN_SLUGS, hiddenSlugsCache);
+    if (db) {
+      try {
+        await deleteDoc(doc(db, 'hidden_slugs', article.slug));
+      } catch (err) {}
+    }
+  }
 
   // Write directly to Firebase Firestore database
   if (db) {
@@ -135,6 +166,7 @@ export async function approveArticle(slug: string): Promise<boolean> {
     updatedArticle = { ...staticArt, status: 'approved' };
     firestoreArticlesCache = [updatedArticle, ...firestoreArticlesCache];
   }
+  writeLocal(STORAGE_KEYS.DYNAMIC_ARTICLES, firestoreArticlesCache);
 
   // Write directly to Firebase Firestore database
   if (db) {
@@ -166,6 +198,7 @@ export async function unpublishArticle(slug: string): Promise<boolean> {
     updatedArticle = { ...staticArt, status: 'pending' };
     firestoreArticlesCache = [updatedArticle, ...firestoreArticlesCache];
   }
+  writeLocal(STORAGE_KEYS.DYNAMIC_ARTICLES, firestoreArticlesCache);
 
   // Write directly to Firebase Firestore database
   if (db) {
@@ -187,11 +220,13 @@ export async function unpublishArticle(slug: string): Promise<boolean> {
 export async function removeArticle(slug: string): Promise<ArticleItem[]> {
   // Remove from dynamic cache
   firestoreArticlesCache = firestoreArticlesCache.filter(a => a.slug !== slug);
+  writeLocal(STORAGE_KEYS.DYNAMIC_ARTICLES, firestoreArticlesCache);
 
   // If static article, add to hidden list
   const isStatic = ARTICLES_DATA.some(a => a.slug === slug);
   if (isStatic && !hiddenSlugsCache.includes(slug)) {
     hiddenSlugsCache.push(slug);
+    writeLocal(STORAGE_KEYS.HIDDEN_SLUGS, hiddenSlugsCache);
     if (db) {
       try {
         await setDoc(doc(db, 'hidden_slugs', slug), { hiddenAt: new Date().toISOString() });
@@ -214,7 +249,7 @@ export async function removeArticle(slug: string): Promise<ArticleItem[]> {
 }
 
 /**
- * Get authorized admin email list from Firebase
+ * Get authorized admin email list
  */
 export function getAllowedAdminEmails(): string[] {
   if (!allowedEmailsCache.includes(MAIN_ADMIN_EMAIL.toLowerCase())) {
@@ -231,6 +266,7 @@ export async function addAllowedAdminEmail(email: string): Promise<string[]> {
   if (!lower || allowedEmailsCache.includes(lower)) return allowedEmailsCache;
 
   allowedEmailsCache = Array.from(new Set([...allowedEmailsCache, lower]));
+  writeLocal(STORAGE_KEYS.ALLOWED_EMAILS, allowedEmailsCache);
 
   // Save to Firebase Firestore
   if (db) {
@@ -252,6 +288,7 @@ export async function removeAllowedAdminEmail(email: string): Promise<string[]> 
   if (lower === MAIN_ADMIN_EMAIL.toLowerCase()) return allowedEmailsCache;
 
   allowedEmailsCache = allowedEmailsCache.filter(e => e !== lower);
+  writeLocal(STORAGE_KEYS.ALLOWED_EMAILS, allowedEmailsCache);
 
   // Save to Firebase Firestore
   if (db) {
