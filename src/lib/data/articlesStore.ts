@@ -9,39 +9,10 @@ export const DEFAULT_ALLOWED_EMAILS = [
   MAIN_ADMIN_EMAIL,
 ];
 
-const ALLOWED_EMAILS_STORAGE_KEY = 'flyo_allowed_admin_emails';
-
-function getStoredAllowedEmails(): string[] {
-  if (typeof window !== 'undefined') {
-    try {
-      const stored = localStorage.getItem(ALLOWED_EMAILS_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return Array.from(new Set([MAIN_ADMIN_EMAIL.toLowerCase(), ...parsed.map((e: string) => String(e).toLowerCase())]));
-        }
-      }
-    } catch (e) {
-      console.error('Error reading allowed emails from localStorage:', e);
-    }
-  }
-  return [...DEFAULT_ALLOWED_EMAILS];
-}
-
-function persistAllowedEmails(emails: string[]): void {
-  if (typeof window !== 'undefined') {
-    try {
-      localStorage.setItem(ALLOWED_EMAILS_STORAGE_KEY, JSON.stringify(emails));
-    } catch (e) {
-      console.error('Error saving allowed emails to localStorage:', e);
-    }
-  }
-}
-
 // In-Memory Firebase Cache (Synced directly with Firestore)
 let firestoreArticlesCache: ArticleItem[] = [];
 let hiddenSlugsCache: string[] = [];
-let allowedEmailsCache: string[] = getStoredAllowedEmails();
+let allowedEmailsCache: string[] = [...DEFAULT_ALLOWED_EMAILS];
 let isInitialized = false;
 
 /**
@@ -66,16 +37,15 @@ export async function syncFromFirestore(): Promise<void> {
       hiddenSlugsCache = [];
     }
 
-    // 3. Fetch allowed partner emails from Firebase Firestore
+    // 3. Fetch allowed partner emails directly from Firebase Firestore
     const emailsDoc = await getDoc(doc(db, 'settings', 'allowed_emails'));
     if (emailsDoc.exists()) {
       const data = emailsDoc.data();
       if (Array.isArray(data.emails)) {
         allowedEmailsCache = Array.from(new Set([MAIN_ADMIN_EMAIL.toLowerCase(), ...data.emails.map((e: string) => String(e).toLowerCase())]));
-        persistAllowedEmails(allowedEmailsCache);
       }
     } else {
-      // If allowed_emails document doesn't exist in Firebase Firestore yet, write current list to Firebase
+      // If allowed_emails document doesn't exist in Firebase Firestore yet, write initial list to Firebase
       await setDoc(doc(db, 'settings', 'allowed_emails'), { emails: allowedEmailsCache });
     }
     isInitialized = true;
@@ -247,9 +217,6 @@ export async function removeArticle(slug: string): Promise<ArticleItem[]> {
  * Get authorized admin email list from Firebase
  */
 export function getAllowedAdminEmails(): string[] {
-  if (allowedEmailsCache.length === 0) {
-    allowedEmailsCache = getStoredAllowedEmails();
-  }
   if (!allowedEmailsCache.includes(MAIN_ADMIN_EMAIL.toLowerCase())) {
     allowedEmailsCache.unshift(MAIN_ADMIN_EMAIL.toLowerCase());
   }
@@ -264,7 +231,6 @@ export async function addAllowedAdminEmail(email: string): Promise<string[]> {
   if (!lower || allowedEmailsCache.includes(lower)) return allowedEmailsCache;
 
   allowedEmailsCache = Array.from(new Set([...allowedEmailsCache, lower]));
-  persistAllowedEmails(allowedEmailsCache);
 
   // Save to Firebase Firestore
   if (db) {
@@ -286,7 +252,6 @@ export async function removeAllowedAdminEmail(email: string): Promise<string[]> 
   if (lower === MAIN_ADMIN_EMAIL.toLowerCase()) return allowedEmailsCache;
 
   allowedEmailsCache = allowedEmailsCache.filter(e => e !== lower);
-  persistAllowedEmails(allowedEmailsCache);
 
   // Save to Firebase Firestore
   if (db) {
