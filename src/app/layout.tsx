@@ -26,6 +26,9 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  verification: {
+    google: '6GbxokTcffQ1pNCIp4YUn143TZA9c7D4YZJ3NDhOcOQ',
+  },
   openGraph: {
     title: 'FLYO | Make Your Business Fly',
     description: COMPANY_INFO.description,
