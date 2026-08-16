@@ -49,6 +49,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <head>
+        <meta name="google-site-verification" content="6GbxokTcffQ1pNCIp4YUn143TZA9c7D4YZJ3NDhOcOQ" />
         <JsonLd data={orgSchema} />
       </head>
       <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans antialiased">
