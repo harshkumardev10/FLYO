@@ -116,8 +116,8 @@ export default function WorkspaceAdminPage() {
     });
   }, []);
 
-  // Handle Login Verification (Instant)
-  const handleLogin = (e: React.FormEvent) => {
+  // Handle Login Verification (Syncs fresh data from Firebase first)
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
     const cleanEmail = emailInput.trim().toLowerCase();
@@ -127,9 +127,19 @@ export default function WorkspaceAdminPage() {
       return;
     }
 
+    setIsLoggingIn(true);
+    try {
+      await syncFromFirestore();
+    } catch (err) {
+      console.error('Login sync error:', err);
+    } finally {
+      setIsLoggingIn(false);
+    }
+
     const currentAllowed = getAllowedAdminEmails();
     if (currentAllowed.includes(cleanEmail)) {
       setAuthenticatedEmail(cleanEmail);
+      setAllowedEmails(currentAllowed);
       if (typeof window !== 'undefined') {
         localStorage.setItem(AUTH_STORAGE_KEY, cleanEmail);
       }
