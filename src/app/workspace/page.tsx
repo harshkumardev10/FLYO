@@ -87,6 +87,8 @@ export default function WorkspaceAdminPage() {
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
+  const isCurrentPrimaryAdmin = authenticatedEmail?.toLowerCase() === MAIN_ADMIN_EMAIL.toLowerCase();
+
   useEffect(() => {
     const allowed = getAllowedAdminEmails();
     setAllowedEmails(allowed);
@@ -266,9 +268,13 @@ export default function WorkspaceAdminPage() {
     setPublishedArticles(getAllArticlesForAdmin());
   };
 
-  // Add Authorized Email
+  // Add Authorized Email (Primary Admin only)
   const handleAddEmail = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isCurrentPrimaryAdmin) {
+      alert('Only Primary Admin (harshkumarrr143@gmail.com) can add team members.');
+      return;
+    }
     if (!newEmailToAdd || !newEmailToAdd.trim()) return;
     const clean = newEmailToAdd.trim().toLowerCase();
     const updated = await addAllowedAdminEmail(clean);
@@ -278,8 +284,12 @@ export default function WorkspaceAdminPage() {
     setTimeout(() => setEmailSuccessMsg(''), 4000);
   };
 
-  // Remove email access
+  // Remove email access (Primary Admin only)
   const handleRemoveEmail = async (email: string) => {
+    if (!isCurrentPrimaryAdmin) {
+      alert('Only Primary Admin (harshkumarrr143@gmail.com) can remove team members.');
+      return;
+    }
     if (email.toLowerCase() === MAIN_ADMIN_EMAIL.toLowerCase()) {
       alert('Primary Admin (harshkumarrr143@gmail.com) cannot be removed.');
       return;
@@ -990,43 +1000,71 @@ export default function WorkspaceAdminPage() {
                   <p className="text-sm text-slate-500 mt-0.5">Control which email addresses can access the FLYO admin portal</p>
                 </div>
 
-                {/* Grant access form */}
-                <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
-                      <Plus className="w-4 h-4 text-indigo-600" />
+                {/* Logged-in session status banner */}
+                <div className="bg-indigo-50/80 border border-indigo-100 rounded-2xl p-4 flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                      {authenticatedEmail?.charAt(0).toUpperCase()}
                     </div>
-                    <h2 className="text-base font-bold text-slate-900">Grant Partner Access</h2>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider font-extrabold text-indigo-700">Active Session</p>
+                      <p className="text-sm font-bold text-slate-900">{authenticatedEmail}</p>
+                    </div>
                   </div>
-
-                  {emailSuccessMsg && (
-                    <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                      <span>{emailSuccessMsg}</span>
-                    </div>
+                  {isCurrentPrimaryAdmin ? (
+                    <span className="px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-xs font-extrabold flex items-center gap-1.5 shadow-sm">
+                      👑 Primary Admin (Owner) — You have full permission to add/remove members
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 rounded-full bg-slate-200 border border-slate-300 text-slate-700 text-xs font-bold flex items-center gap-1.5">
+                      🔒 Standard Partner — Read-only team list (Cannot add or remove members)
+                    </span>
                   )}
-
-                  <form onSubmit={handleAddEmail} className="flex gap-3">
-                    <div className="relative flex-1">
-                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="email"
-                        required
-                        value={newEmailToAdd}
-                        onChange={(e) => setNewEmailToAdd(e.target.value)}
-                        placeholder="partner@example.com"
-                        className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      className="px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm transition-colors flex items-center gap-2 shrink-0"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Add Access</span>
-                    </button>
-                  </form>
                 </div>
+
+                {/* Grant access form (Primary Admin only) */}
+                {isCurrentPrimaryAdmin ? (
+                  <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                        <Plus className="w-4 h-4 text-indigo-600" />
+                      </div>
+                      <h2 className="text-base font-bold text-slate-900">Grant Partner Access</h2>
+                    </div>
+
+                    {emailSuccessMsg && (
+                      <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <span>{emailSuccessMsg}</span>
+                      </div>
+                    )}
+
+                    <form onSubmit={handleAddEmail} className="flex gap-3">
+                      <div className="relative flex-1">
+                        <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="email"
+                          required
+                          value={newEmailToAdd}
+                          onChange={(e) => setNewEmailToAdd(e.target.value)}
+                          placeholder="partner@example.com"
+                          className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm transition-colors flex items-center gap-2 shrink-0"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Access</span>
+                      </button>
+                    </form>
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-slate-600 text-xs flex items-center gap-2">
+                    <span>🔒 Only Primary Admin ({MAIN_ADMIN_EMAIL}) can grant or remove partner access.</span>
+                  </div>
+                )}
 
                 {/* Email list */}
                 <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
@@ -1060,7 +1098,7 @@ export default function WorkspaceAdminPage() {
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                 Authorized
                               </span>
-                              {!isPrimaryAdmin && authenticatedEmail?.toLowerCase() !== email.toLowerCase() && (
+                              {isCurrentPrimaryAdmin && !isPrimaryAdmin && (
                                 <button
                                   onClick={() => handleRemoveEmail(email)}
                                   className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"

@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isPrimaryAdmin() {
+      return request.auth != null && request.auth.token.email.lower() == 'harshkumarrr143@gmail.com';
+    }
+
+    // 1. Articles collection (Public can read approved articles, admins can manage)
+    match /articles/{articleId} {
+      allow read: if true;
+      allow create, update: if true; // Allows website partner uploads & edits
+      allow delete: if isPrimaryAdmin() || true; // Delete articles
+    }
+
+    // 2. Settings & Allowed Emails (Primary Admin controls access list)
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /allowed_emails/{emailId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // 3. Hidden Slugs collection
+    match /hidden_slugs/{slugId} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}
