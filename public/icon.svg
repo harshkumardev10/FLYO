@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Background rounded square -->
+  <rect width="64" height="64" rx="14" fill="#0C1A3A"/>
+  
+  <!-- Kingfisher body - rich blue body -->
+  <ellipse cx="32" cy="36" rx="13" ry="8" fill="#0EA5E9" transform="rotate(-15 32 36)"/>
+  
+  <!-- Kingfisher tail feathers -->
+  <path d="M14 42 Q10 46 8 52 Q13 47 16 45 Q18 49 20 54 Q19 47 18 44Z" fill="#1D4ED8"/>
+  
+  <!-- Kingfisher wing (upper) -->
+  <path d="M28 28 Q22 18 30 14 Q36 12 40 20 Q34 22 28 28Z" fill="#1D4ED8"/>
+  
+  <!-- Wing highlight/shimmer -->
+  <path d="M29 27 Q24 20 30 17 Q35 15 38 21 Q33 23 29 27Z" fill="#38BDF8"/>
+  
+  <!-- Kingfisher beak - long and pointed -->
+  <path d="M44 30 L58 26 L44 33Z" fill="#1E293B"/>
+  <path d="M44 30 L58 26 L51 28Z" fill="#334155"/>
+  
+  <!-- Head - dark blue-green cap -->
+  <ellipse cx="40" cy="28" rx="8" ry="7" fill="#0C4A6E"/>
+  
+  <!-- Orange chest/belly -->
+  <path d="M26 36 Q30 46 36 44 Q42 42 44 34 Q38 32 26 36Z" fill="#F97316"/>
+  
+  <!-- White throat patch -->
+  <ellipse cx="40" cy="33" rx="3" ry="2" fill="#F8FAFC" opacity="0.9"/>
+  
+  <!-- Eye -->
+  <circle cx="42" cy="26" r="2" fill="#F8FAFC"/>
+  <circle cx="42.5" cy="26" r="1" fill="#0F172A"/>
+  <circle cx="42" cy="25.5" r="0.4" fill="white"/>
+</svg>
