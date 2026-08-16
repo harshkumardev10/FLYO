@@ -97,6 +97,7 @@ export default function WorkspaceAdminPage() {
     syncFromFirestore().then(() => {
       setPublishedArticles(getAllArticlesForAdmin());
       setDynamicArticles(getDynamicArticles());
+      setAllowedEmails(getAllowedAdminEmails());
     });
 
     if (typeof window !== 'undefined') {
@@ -168,7 +169,7 @@ export default function WorkspaceAdminPage() {
   };
 
   // Handle Article Publish / Update
-  const handlePublishArticle = (e: React.FormEvent) => {
+  const handlePublishArticle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!articleTitle || !summary || !contentHtml) return;
 
@@ -203,7 +204,7 @@ export default function WorkspaceAdminPage() {
       submittedBy: authenticatedEmail || 'Partner',
     };
 
-    const saved = saveArticle(newArticle);
+    const saved = await saveArticle(newArticle);
     if (saved) {
       setPublishSuccess(true);
       setPublishedArticles(getAllArticlesForAdmin());
@@ -218,54 +219,56 @@ export default function WorkspaceAdminPage() {
   };
 
   // Handle Approve Article (Main Admin only)
-  const handleApproveArticle = (slug: string) => {
-    if (approveArticle(slug)) {
+  const handleApproveArticle = async (slug: string) => {
+    const success = await approveArticle(slug);
+    if (success) {
       setPublishedArticles(getAllArticlesForAdmin());
       setDynamicArticles(getDynamicArticles());
     }
   };
 
   // Handle Unpublish / Stop Article Live (Main Admin only)
-  const handleUnpublishArticle = (slug: string) => {
-    if (unpublishArticle(slug)) {
+  const handleUnpublishArticle = async (slug: string) => {
+    const success = await unpublishArticle(slug);
+    if (success) {
       setPublishedArticles(getAllArticlesForAdmin());
       setDynamicArticles(getDynamicArticles());
     }
   };
 
   // Delete an article (Primary Admin only)
-  const handleDeleteArticle = (slug: string) => {
+  const handleDeleteArticle = async (slug: string) => {
     if (authenticatedEmail?.toLowerCase() !== MAIN_ADMIN_EMAIL.toLowerCase()) {
       alert('Only Primary Admin (harshkumarrr143@gmail.com) can delete articles.');
       return;
     }
     if (!confirm('Delete this article? This cannot be undone.')) return;
-    removeArticle(slug);
+    await removeArticle(slug);
     setDynamicArticles(getDynamicArticles());
     setPublishedArticles(getAllArticlesForAdmin());
   };
 
   // Add Authorized Email
-  const handleAddEmail = (e: React.FormEvent) => {
+  const handleAddEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEmailToAdd || !newEmailToAdd.trim()) return;
     const clean = newEmailToAdd.trim().toLowerCase();
-    const updated = addAllowedAdminEmail(clean);
-    setAllowedEmails(updated);
+    const updated = await addAllowedAdminEmail(clean);
+    setAllowedEmails([...updated]);
     setNewEmailToAdd('');
     setEmailSuccessMsg(`✅ Access granted to: ${clean}`);
     setTimeout(() => setEmailSuccessMsg(''), 4000);
   };
 
   // Remove email access
-  const handleRemoveEmail = (email: string) => {
+  const handleRemoveEmail = async (email: string) => {
     if (email.toLowerCase() === MAIN_ADMIN_EMAIL.toLowerCase()) {
       alert('Primary Admin (harshkumarrr143@gmail.com) cannot be removed.');
       return;
     }
     if (!confirm(`Remove access for ${email}?`)) return;
-    const updated = removeAllowedAdminEmail(email);
-    setAllowedEmails(updated);
+    const updated = await removeAllowedAdminEmail(email);
+    setAllowedEmails([...updated]);
   };
 
   const inputClass = "w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder:text-slate-400 transition-all";

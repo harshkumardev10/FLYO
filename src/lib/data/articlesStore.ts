@@ -15,7 +15,7 @@ export const DEFAULT_ALLOWED_EMAILS = [
   'partner@flyodigital.com',
 ];
 
-// In-Memory Firebase Cache (No LocalStorage used!)
+// In-Memory Firebase Cache (Synced directly with Firestore)
 let firestoreArticlesCache: ArticleItem[] = [];
 let hiddenSlugsCache: string[] = [];
 let allowedEmailsCache: string[] = [...DEFAULT_ALLOWED_EMAILS];
@@ -31,12 +31,16 @@ export async function syncFromFirestore(): Promise<void> {
     const articlesSnapshot = await getDocs(collection(db, 'articles'));
     if (!articlesSnapshot.empty) {
       firestoreArticlesCache = articlesSnapshot.docs.map(docSnap => docSnap.data() as ArticleItem);
+    } else {
+      firestoreArticlesCache = [];
     }
 
     // 2. Fetch hidden slugs from Firebase Firestore
     const hiddenSnapshot = await getDocs(collection(db, 'hidden_slugs'));
     if (!hiddenSnapshot.empty) {
       hiddenSlugsCache = hiddenSnapshot.docs.map(docSnap => docSnap.id);
+    } else {
+      hiddenSlugsCache = [];
     }
 
     // 3. Fetch allowed partner emails from Firebase Firestore
@@ -47,10 +51,9 @@ export async function syncFromFirestore(): Promise<void> {
         allowedEmailsCache = Array.from(new Set([MAIN_ADMIN_EMAIL, ...data.emails.map((e: string) => String(e).toLowerCase())]));
       }
     }
-
     isInitialized = true;
   } catch (err) {
-    console.warn('Firebase Firestore sync notice:', err);
+    console.error('Firebase Firestore sync error:', err);
   }
 }
 
@@ -102,24 +105,27 @@ export function getAllArticlesForAdmin(): ArticleItem[] {
 /**
  * Save / Publish an article directly to Firebase Firestore
  */
-export function saveArticle(article: ArticleItem): boolean {
+export async function saveArticle(article: ArticleItem): Promise<boolean> {
   // Update in-memory Firebase cache immediately
   firestoreArticlesCache = [article, ...firestoreArticlesCache.filter(a => a.slug !== article.slug)];
 
   // Write directly to Firebase Firestore database
   if (db) {
-    setDoc(doc(db, 'articles', article.slug), article).catch(err =>
-      console.error('Firebase save failed:', err)
-    );
+    try {
+      await setDoc(doc(db, 'articles', article.slug), article);
+      return true;
+    } catch (err) {
+      console.error('Firebase save error:', err);
+      return false;
+    }
   }
-
   return true;
 }
 
 /**
  * Approve a pending article directly in Firebase Firestore
  */
-export function approveArticle(slug: string): boolean {
+export async function approveArticle(slug: string): Promise<boolean> {
   const existingIndex = firestoreArticlesCache.findIndex(a => a.slug === slug);
   let updatedArticle: ArticleItem;
 
@@ -135,9 +141,13 @@ export function approveArticle(slug: string): boolean {
 
   // Write directly to Firebase Firestore database
   if (db) {
-    setDoc(doc(db, 'articles', slug), updatedArticle, { merge: true }).catch(err =>
-      console.error('Firebase approve failed:', err)
-    );
+    try {
+      await setDoc(doc(db, 'articles', slug), updatedArticle, { merge: true });
+      return true;
+    } catch (err) {
+      console.error('Firebase approve error:', err);
+      return false;
+    }
   }
 
   return true;
@@ -146,7 +156,7 @@ export function approveArticle(slug: string): boolean {
 /**
  * Unpublish / Stop an article directly in Firebase Firestore
  */
-export function unpublishArticle(slug: string): boolean {
+export async function unpublishArticle(slug: string): Promise<boolean> {
   const existingIndex = firestoreArticlesCache.findIndex(a => a.slug === slug);
   let updatedArticle: ArticleItem;
 
@@ -162,9 +172,13 @@ export function unpublishArticle(slug: string): boolean {
 
   // Write directly to Firebase Firestore database
   if (db) {
-    setDoc(doc(db, 'articles', slug), updatedArticle, { merge: true }).catch(err =>
-      console.error('Firebase unpublish failed:', err)
-    );
+    try {
+      await setDoc(doc(db, 'articles', slug), updatedArticle, { merge: true });
+      return true;
+    } catch (err) {
+      console.error('Firebase unpublish error:', err);
+      return false;
+    }
   }
 
   return true;
@@ -173,7 +187,7 @@ export function unpublishArticle(slug: string): boolean {
 /**
  * Delete an article directly in Firebase Firestore
  */
-export function removeArticle(slug: string): ArticleItem[] {
+export async function removeArticle(slug: string): Promise<ArticleItem[]> {
   // Remove from dynamic cache
   firestoreArticlesCache = firestoreArticlesCache.filter(a => a.slug !== slug);
 
@@ -182,17 +196,21 @@ export function removeArticle(slug: string): ArticleItem[] {
   if (isStatic && !hiddenSlugsCache.includes(slug)) {
     hiddenSlugsCache.push(slug);
     if (db) {
-      setDoc(doc(db, 'hidden_slugs', slug), { hiddenAt: new Date().toISOString() }).catch(err =>
-        console.error('Firebase hide static failed:', err)
-      );
+      try {
+        await setDoc(doc(db, 'hidden_slugs', slug), { hiddenAt: new Date().toISOString() });
+      } catch (err) {
+        console.error('Firebase hide static error:', err);
+      }
     }
   }
 
   // Delete directly from Firebase Firestore collection
   if (db) {
-    deleteDoc(doc(db, 'articles', slug)).catch(err =>
-      console.error('Firebase delete failed:', err)
-    );
+    try {
+      await deleteDoc(doc(db, 'articles', slug));
+    } catch (err) {
+      console.error('Firebase delete error:', err);
+    }
   }
 
   return firestoreArticlesCache;
@@ -211,7 +229,7 @@ export function getAllowedAdminEmails(): string[] {
 /**
  * Add a new authorized admin email directly to Firebase Firestore
  */
-export function addAllowedAdminEmail(email: string): string[] {
+export async function addAllowedAdminEmail(email: string): Promise<string[]> {
   const lower = email.trim().toLowerCase();
   if (!lower || allowedEmailsCache.includes(lower)) return allowedEmailsCache;
 
@@ -219,9 +237,11 @@ export function addAllowedAdminEmail(email: string): string[] {
 
   // Save to Firebase Firestore
   if (db) {
-    setDoc(doc(db, 'settings', 'allowed_emails'), { emails: allowedEmailsCache }, { merge: true }).catch(err =>
-      console.error('Firebase add email failed:', err)
-    );
+    try {
+      await setDoc(doc(db, 'settings', 'allowed_emails'), { emails: allowedEmailsCache }, { merge: true });
+    } catch (err) {
+      console.error('Firebase add email error:', err);
+    }
   }
 
   return allowedEmailsCache;
@@ -230,7 +250,7 @@ export function addAllowedAdminEmail(email: string): string[] {
 /**
  * Remove an authorized admin email directly from Firebase Firestore
  */
-export function removeAllowedAdminEmail(email: string): string[] {
+export async function removeAllowedAdminEmail(email: string): Promise<string[]> {
   const lower = email.trim().toLowerCase();
   if (lower === MAIN_ADMIN_EMAIL.toLowerCase()) return allowedEmailsCache;
 
@@ -238,10 +258,14 @@ export function removeAllowedAdminEmail(email: string): string[] {
 
   // Save to Firebase Firestore
   if (db) {
-    setDoc(doc(db, 'settings', 'allowed_emails'), { emails: allowedEmailsCache }, { merge: true }).catch(err =>
-      console.error('Firebase remove email failed:', err)
-    );
+    try {
+      await setDoc(doc(db, 'settings', 'allowed_emails'), { emails: allowedEmailsCache }, { merge: true });
+    } catch (err) {
+      console.error('Firebase remove email error:', err);
+    }
   }
 
   return allowedEmailsCache;
 }
+
+
