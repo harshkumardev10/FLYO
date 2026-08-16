@@ -6,19 +6,42 @@ import { doc, setDoc, deleteDoc, getDocs, getDoc, collection } from 'firebase/fi
 export const MAIN_ADMIN_EMAIL = 'harshkumarrr143@gmail.com';
 
 export const DEFAULT_ALLOWED_EMAILS = [
-  'harshkumarrr143@gmail.com',
-  'admin@flyodigital.com',
-  'alex@flyodigital.com',
-  'sam@flyodigital.com',
-  'maya@flyodigital.com',
-  'jordan@flyodigital.com',
-  'partner@flyodigital.com',
+  MAIN_ADMIN_EMAIL,
 ];
+
+const ALLOWED_EMAILS_STORAGE_KEY = 'flyo_allowed_admin_emails';
+
+function getStoredAllowedEmails(): string[] {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(ALLOWED_EMAILS_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return Array.from(new Set([MAIN_ADMIN_EMAIL.toLowerCase(), ...parsed.map((e: string) => String(e).toLowerCase())]));
+        }
+      }
+    } catch (e) {
+      console.error('Error reading allowed emails from localStorage:', e);
+    }
+  }
+  return [...DEFAULT_ALLOWED_EMAILS];
+}
+
+function persistAllowedEmails(emails: string[]): void {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(ALLOWED_EMAILS_STORAGE_KEY, JSON.stringify(emails));
+    } catch (e) {
+      console.error('Error saving allowed emails to localStorage:', e);
+    }
+  }
+}
 
 // In-Memory Firebase Cache (Synced directly with Firestore)
 let firestoreArticlesCache: ArticleItem[] = [];
 let hiddenSlugsCache: string[] = [];
-let allowedEmailsCache: string[] = [...DEFAULT_ALLOWED_EMAILS];
+let allowedEmailsCache: string[] = getStoredAllowedEmails();
 let isInitialized = false;
 
 /**
@@ -48,8 +71,12 @@ export async function syncFromFirestore(): Promise<void> {
     if (emailsDoc.exists()) {
       const data = emailsDoc.data();
       if (Array.isArray(data.emails)) {
-        allowedEmailsCache = Array.from(new Set([MAIN_ADMIN_EMAIL, ...data.emails.map((e: string) => String(e).toLowerCase())]));
+        allowedEmailsCache = Array.from(new Set([MAIN_ADMIN_EMAIL.toLowerCase(), ...data.emails.map((e: string) => String(e).toLowerCase())]));
+        persistAllowedEmails(allowedEmailsCache);
       }
+    } else {
+      // If allowed_emails document doesn't exist in Firebase Firestore yet, write current list to Firebase
+      await setDoc(doc(db, 'settings', 'allowed_emails'), { emails: allowedEmailsCache });
     }
     isInitialized = true;
   } catch (err) {
@@ -220,8 +247,11 @@ export async function removeArticle(slug: string): Promise<ArticleItem[]> {
  * Get authorized admin email list from Firebase
  */
 export function getAllowedAdminEmails(): string[] {
-  if (!allowedEmailsCache.includes(MAIN_ADMIN_EMAIL)) {
-    allowedEmailsCache.unshift(MAIN_ADMIN_EMAIL);
+  if (allowedEmailsCache.length === 0) {
+    allowedEmailsCache = getStoredAllowedEmails();
+  }
+  if (!allowedEmailsCache.includes(MAIN_ADMIN_EMAIL.toLowerCase())) {
+    allowedEmailsCache.unshift(MAIN_ADMIN_EMAIL.toLowerCase());
   }
   return Array.from(new Set(allowedEmailsCache));
 }
@@ -234,11 +264,12 @@ export async function addAllowedAdminEmail(email: string): Promise<string[]> {
   if (!lower || allowedEmailsCache.includes(lower)) return allowedEmailsCache;
 
   allowedEmailsCache = Array.from(new Set([...allowedEmailsCache, lower]));
+  persistAllowedEmails(allowedEmailsCache);
 
   // Save to Firebase Firestore
   if (db) {
     try {
-      await setDoc(doc(db, 'settings', 'allowed_emails'), { emails: allowedEmailsCache }, { merge: true });
+      await setDoc(doc(db, 'settings', 'allowed_emails'), { emails: allowedEmailsCache });
     } catch (err) {
       console.error('Firebase add email error:', err);
     }
@@ -255,11 +286,12 @@ export async function removeAllowedAdminEmail(email: string): Promise<string[]> 
   if (lower === MAIN_ADMIN_EMAIL.toLowerCase()) return allowedEmailsCache;
 
   allowedEmailsCache = allowedEmailsCache.filter(e => e !== lower);
+  persistAllowedEmails(allowedEmailsCache);
 
   // Save to Firebase Firestore
   if (db) {
     try {
-      await setDoc(doc(db, 'settings', 'allowed_emails'), { emails: allowedEmailsCache }, { merge: true });
+      await setDoc(doc(db, 'settings', 'allowed_emails'), { emails: allowedEmailsCache });
     } catch (err) {
       console.error('Firebase remove email error:', err);
     }

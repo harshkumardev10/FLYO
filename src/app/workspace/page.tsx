@@ -365,9 +365,6 @@ export default function WorkspaceAdminPage() {
               <p className="text-[11px] text-slate-500">
                 Access is restricted to authorized FLYO team members and partners.
               </p>
-              <p className="text-[11px] text-slate-600 font-mono">
-                Demo: admin@flyodigital.com
-              </p>
             </div>
           </div>
 
@@ -1011,13 +1008,6 @@ export default function WorkspaceAdminPage() {
                       <span>Add Access</span>
                     </button>
                   </form>
-
-                  <div className="text-xs text-slate-500 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start gap-2">
-                    <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                    <span>
-                      <strong>After hosting:</strong> To grant access to a real email, add it here. That person can then visit <code className="font-mono">/workspace</code> and enter their email to access the admin dashboard.
-                    </span>
-                  </div>
                 </div>
 
                 {/* Email list */}
