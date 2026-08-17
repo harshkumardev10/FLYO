@@ -101,6 +101,7 @@ export default function WorkspaceAdminPage() {
   const [heroImage, setHeroImage] = useState('https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?q=80&w=1200&auto=format&fit=crop');
   const [relatedServiceSlug, setRelatedServiceSlug] = useState('web-development');
   const [publishSuccess, setPublishSuccess] = useState(false);
+  const [publishError, setPublishError] = useState('');
   const [publishedArticles, setPublishedArticles] = useState<ArticleItem[]>([]);
   const [dynamicArticles, setDynamicArticles] = useState<ArticleItem[]>([]);
   const [previewMode, setPreviewMode] = useState(false);
@@ -247,6 +248,7 @@ export default function WorkspaceAdminPage() {
       submittedBy: authenticatedEmail || 'Partner',
     };
 
+    setPublishError('');
     const saved = await saveArticle(newArticle);
     if (saved) {
       setPublishSuccess(true);
@@ -258,6 +260,9 @@ export default function WorkspaceAdminPage() {
       setContentHtml('');
       setActiveTab('manage');
       setTimeout(() => setPublishSuccess(false), 5000);
+    } else {
+      setPublishError('Save failed. Please check your connection and try again.');
+      setTimeout(() => setPublishError(''), 5000);
     }
   };
 
@@ -613,6 +618,16 @@ export default function WorkspaceAdminPage() {
               </div>
             )}
 
+            {/* Error banner */}
+            {publishError && (
+              <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center gap-3 animate-fade-in">
+                <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                <div>
+                  <span className="font-bold">{publishError}</span>
+                </div>
+              </div>
+            )}
+
             {/* ═══ TAB: WRITE ARTICLE ═══ */}
             {activeTab === 'articles' && (
               <div className="space-y-6">
@@ -830,7 +845,7 @@ export default function WorkspaceAdminPage() {
 
                           <input
                             id="heroImage"
-                            type="url"
+                            type="text"
                             value={heroImage}
                             onChange={(e) => setHeroImage(e.target.value)}
                             placeholder="Or paste image URL https://..."
@@ -1328,7 +1343,7 @@ export default function WorkspaceAdminPage() {
                             {isUploadingTeamAvatar ? 'Uploading...' : '☁️ Upload Photo'}
                           </label>
                           <input
-                            type="url" value={teamForm.avatar}
+                            type="text" value={teamForm.avatar}
                             onChange={e => setTeamForm(f => ({ ...f, avatar: e.target.value }))}
                             placeholder="Or paste image URL https://..."
                             className={inputClass}
@@ -1344,7 +1359,7 @@ export default function WorkspaceAdminPage() {
                     <div>
                       <label className={labelClass}>LinkedIn URL</label>
                       <input
-                        type="url" value={teamForm.linkedin}
+                        type="text" value={teamForm.linkedin}
                         onChange={e => setTeamForm(f => ({ ...f, linkedin: e.target.value }))}
                         placeholder="https://linkedin.com/in/..."
                         className={inputClass}
@@ -1355,7 +1370,7 @@ export default function WorkspaceAdminPage() {
                     <div>
                       <label className={labelClass}>Twitter / X URL</label>
                       <input
-                        type="url" value={teamForm.twitter}
+                        type="text" value={teamForm.twitter}
                         onChange={e => setTeamForm(f => ({ ...f, twitter: e.target.value }))}
                         placeholder="https://x.com/..."
                         className={inputClass}
