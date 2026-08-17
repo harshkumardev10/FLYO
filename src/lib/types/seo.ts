@@ -67,9 +67,14 @@ export interface ArticleItem {
 }
 
 export interface TeamMember {
+  id: string;           // unique identifier (slug-style)
   name: string;
   role: string;
   bio: string;
   college: string;
   avatar: string;
+  linkedin?: string;
+  twitter?: string;
+  visible: boolean;     // controls whether displayed on site
+  order: number;        // display order
 }
