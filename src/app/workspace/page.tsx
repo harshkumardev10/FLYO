@@ -59,7 +59,9 @@ import {
   toggleTeamMemberVisibility,
   syncTeamFromFirestore,
 } from '@/lib/data/teamStore';
-import { ArticleItem, TeamMember } from '@/lib/types/seo';
+import { saveProject } from '@/lib/data/workStore';
+import { formatContentWithHyperlinks } from '@/lib/utils/formatContent';
+import { ArticleItem, TeamMember, WorkProject } from '@/lib/types/seo';
 import { AuditTool } from '@/components/ui/AuditTool';
 
 const AUTH_STORAGE_KEY = 'flyo_authenticated_partner_email';
@@ -74,7 +76,22 @@ export default function WorkspaceAdminPage() {
   const [newEmailToAdd, setNewEmailToAdd] = useState('');
   const [emailSuccessMsg, setEmailSuccessMsg] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'articles' | 'manage' | 'emails' | 'audit' | 'team'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'projects' | 'manage' | 'emails' | 'audit' | 'team'>('articles');
+
+  // Real Project Form State
+  const [projectTitle, setProjectTitle] = useState('');
+  const [clientName, setClientName] = useState('');
+  const [projectCategory, setProjectCategory] = useState<'Websites' | 'Social Media' | 'Posters' | 'Thumbnails' | 'Branding' | 'Marketing'>('Websites');
+  const [projectService, setProjectService] = useState('Web Development');
+  const [projectShortDescription, setProjectShortDescription] = useState('');
+  const [projectChallenge, setProjectChallenge] = useState('');
+  const [projectWhatWeDid, setProjectWhatWeDid] = useState('');
+  const [projectFinalResult, setProjectFinalResult] = useState('');
+  const [projectMeasurableResult, setProjectMeasurableResult] = useState('');
+  const [projectHeroImage, setProjectHeroImage] = useState('');
+  const [isUploadingProjectImage, setIsUploadingProjectImage] = useState(false);
+  const [projectSuccess, setProjectSuccess] = useState(false);
+  const [projectError, setProjectError] = useState('');
 
   // ── Team Members State ──
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -242,7 +259,7 @@ export default function WorkspaceAdminPage() {
       authorRole,
       readingTimeMinutes: Number(readingTime) || 5,
       heroImage,
-      contentHtml: contentHtml.startsWith('<') ? contentHtml : `<p>${contentHtml.replace(/\n\n/g, '</p><p>')}</p>`,
+      contentHtml: contentHtml.startsWith('<') ? contentHtml : formatContentWithHyperlinks(contentHtml),
       relatedServiceSlug,
       status: articleStatus,
       submittedBy: authenticatedEmail || 'Partner',
@@ -263,6 +280,54 @@ export default function WorkspaceAdminPage() {
     } else {
       setPublishError('Save failed. Please check your connection and try again.');
       setTimeout(() => setPublishError(''), 5000);
+    }
+  };
+
+  // Handle Real Project Publishing
+  const handlePublishProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!projectTitle || !projectShortDescription) return;
+
+    const slug = projectTitle
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+
+    const steps = projectWhatWeDid
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const newProject: WorkProject = {
+      slug: slug || `project-${Date.now()}`,
+      title: projectTitle,
+      clientName: clientName || projectTitle,
+      category: projectCategory,
+      service: projectService,
+      shortDescription: projectShortDescription,
+      challenge: projectChallenge,
+      whatWeDid: steps.length > 0 ? steps : [projectShortDescription],
+      finalResult: projectFinalResult || 'Project delivered on time with high client satisfaction.',
+      heroImage: projectHeroImage || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop',
+      measurableResult: projectMeasurableResult || undefined,
+    };
+
+    setProjectError('');
+    const saved = await saveProject(newProject);
+    if (saved) {
+      setProjectSuccess(true);
+      setProjectTitle('');
+      setClientName('');
+      setProjectShortDescription('');
+      setProjectChallenge('');
+      setProjectWhatWeDid('');
+      setProjectFinalResult('');
+      setProjectMeasurableResult('');
+      setProjectHeroImage('');
+      setTimeout(() => setProjectSuccess(false), 5000);
+    } else {
+      setProjectError('Failed to publish project. Please check your connection and try again.');
+      setTimeout(() => setProjectError(''), 5000);
     }
   };
 
@@ -493,6 +558,7 @@ export default function WorkspaceAdminPage() {
   ═══════════════════════════════════════════ */
   const tabs = [
     { id: 'articles', label: 'Write Article', icon: <PenTool className="w-4 h-4" />, count: null, adminOnly: false },
+    { id: 'projects', label: 'Add Real Project', icon: <Upload className="w-4 h-4" />, count: null, adminOnly: false },
     { id: 'manage', label: 'Manage Articles', icon: <BookOpen className="w-4 h-4" />, count: publishedArticles.length, adminOnly: false },
     { id: 'emails', label: 'Partner Access', icon: <Users className="w-4 h-4" />, count: allowedEmails.length, adminOnly: false },
     { id: 'audit', label: 'SEO Audit', icon: <BarChart2 className="w-4 h-4" />, count: null, adminOnly: false },
@@ -771,28 +837,16 @@ export default function WorkspaceAdminPage() {
                     </div>
 
                     <div className="p-6 border-b border-slate-100 space-y-5">
-                      <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Content</h2>
+                      <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Article Content</h2>
                       
                       <div>
                         <label htmlFor="contentHtml" className={labelClass}>
-                          Article Body (HTML or Plain Paragraphs) *
+                          Article Body (Normal Text Box) *
                         </label>
                         <div className="rounded-xl border border-slate-200 overflow-hidden">
-                          <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                            <Code2 className="w-3 h-3" />
-                            <span>HTML Editor</span>
-                            <div className="ml-auto flex gap-1">
-                              {['<h2>', '<p>', '<ul>', '<strong>'].map(tag => (
-                                <button
-                                  key={tag}
-                                  type="button"
-                                  onClick={() => setContentHtml(prev => prev + tag + '</' + tag.slice(1))}
-                                  className="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors text-[10px] font-mono"
-                                >
-                                  {tag}
-                                </button>
-                              ))}
-                            </div>
+                          <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600">
+                            <span>Normal Text & Link Mode</span>
+                            <span className="text-[10px] text-indigo-600 font-semibold">Links (https://...) work automatically</span>
                           </div>
                           <textarea
                             id="contentHtml"
@@ -800,10 +854,13 @@ export default function WorkspaceAdminPage() {
                             required
                             value={contentHtml}
                             onChange={(e) => setContentHtml(e.target.value)}
-                            placeholder={'<h2>Introduction</h2>\n<p>Start your article here...</p>\n\n<h2>Section 1</h2>\n<p>Write your content...</p>'}
-                            className="w-full px-4 py-3 text-sm text-slate-900 font-mono bg-white focus:outline-none focus:ring-0 resize-none"
+                            placeholder="Write your article body text naturally...\n\nPaste any website link (e.g. https://example.com) or [link text](url) and it will automatically be converted into a working hyperlink!"
+                            className="w-full px-4 py-3 text-sm text-slate-900 bg-white focus:outline-none focus:ring-0 resize-none leading-relaxed"
                           />
                         </div>
+                        <p className="mt-1.5 text-[11px] text-slate-500">
+                          ✨ Type naturally in plain text. Any website links you include will automatically turn into active clickable hyperlinks when published!
+                        </p>
                       </div>
                     </div>
 
@@ -941,6 +998,219 @@ export default function WorkspaceAdminPage() {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* ═══ TAB: ADD REAL PROJECT ═══ */}
+            {activeTab === 'projects' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-2xl font-extrabold text-slate-900">Add Real Project</h1>
+                    <p className="text-sm text-slate-500 mt-0.5">
+                      Publish a real client project to the FLYO portfolio with photos and impact details
+                    </p>
+                  </div>
+                </div>
+
+                {projectSuccess && (
+                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-3 animate-in fade-in">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <div>
+                      <span className="font-bold">Real Project published successfully!</span> It is now live in your portfolio (/work).
+                    </div>
+                    <Link href="/work" target="_blank" className="ml-auto text-xs font-bold text-emerald-700 hover:underline shrink-0">View Portfolio →</Link>
+                  </div>
+                )}
+
+                {projectError && (
+                  <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3 animate-in fade-in">
+                    <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                    <span>{projectError}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handlePublishProject} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm space-y-6 p-6 sm:p-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="projectTitle" className={labelClass}>Project Title *</label>
+                      <input
+                        id="projectTitle"
+                        type="text"
+                        required
+                        value={projectTitle}
+                        onChange={(e) => setProjectTitle(e.target.value)}
+                        placeholder="e.g. Verde Bistro Mobile Website"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="clientName" className={labelClass}>Client / Business Name *</label>
+                      <input
+                        id="clientName"
+                        type="text"
+                        required
+                        value={clientName}
+                        onChange={(e) => setClientName(e.target.value)}
+                        placeholder="e.g. Verde Bistro & Bakery"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="projectCategory" className={labelClass}>Category *</label>
+                      <select
+                        id="projectCategory"
+                        value={projectCategory}
+                        onChange={(e) => setProjectCategory(e.target.value as any)}
+                        className={inputClass}
+                      >
+                        <option value="Websites">Websites</option>
+                        <option value="Social Media">Social Media</option>
+                        <option value="Posters">Posters</option>
+                        <option value="Thumbnails">Thumbnails</option>
+                        <option value="Branding">Branding</option>
+                        <option value="Marketing">Marketing</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="projectService" className={labelClass}>Service Delivered *</label>
+                      <input
+                        id="projectService"
+                        type="text"
+                        required
+                        value={projectService}
+                        onChange={(e) => setProjectService(e.target.value)}
+                        placeholder="e.g. Web Development / Poster Design"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="projectShortDescription" className={labelClass}>Short Description / Summary *</label>
+                    <textarea
+                      id="projectShortDescription"
+                      rows={2}
+                      required
+                      value={projectShortDescription}
+                      onChange={(e) => setProjectShortDescription(e.target.value)}
+                      placeholder="Brief overview of what was accomplished for the client..."
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="projectChallenge" className={labelClass}>The Challenge / Problem Solved</label>
+                    <textarea
+                      id="projectChallenge"
+                      rows={2}
+                      value={projectChallenge}
+                      onChange={(e) => setProjectChallenge(e.target.value)}
+                      placeholder="What issue or difficulty was the client facing before this project?"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="projectWhatWeDid" className={labelClass}>What We Did (One step per line)</label>
+                    <textarea
+                      id="projectWhatWeDid"
+                      rows={4}
+                      value={projectWhatWeDid}
+                      onChange={(e) => setProjectWhatWeDid(e.target.value)}
+                      placeholder="Built fast Next.js responsive website with mobile menu\nAdded click-to-call & Google Maps direction buttons\nOptimized page load speed under 1 second"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="projectFinalResult" className={labelClass}>Final Result & Impact</label>
+                      <input
+                        id="projectFinalResult"
+                        type="text"
+                        value={projectFinalResult}
+                        onChange={(e) => setProjectFinalResult(e.target.value)}
+                        placeholder="e.g. 40% more online inquiries and faster customer orders."
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="projectMeasurableResult" className={labelClass}>Measurable Outcome Metric</label>
+                      <input
+                        id="projectMeasurableResult"
+                        type="text"
+                        value={projectMeasurableResult}
+                        onChange={(e) => setProjectMeasurableResult(e.target.value)}
+                        placeholder="e.g. Sub-1s Mobile Menu Load Time"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Photo Uploading Section */}
+                  <div className="space-y-3 pt-4 border-t border-slate-100">
+                    <label htmlFor="projectHeroImage" className={labelClass}>Project Photo (Photo Uploading) *</label>
+                    
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="projectPhotoUpload"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setIsUploadingProjectImage(true);
+                          try {
+                            const url = await uploadImageToCloudinary(file);
+                            setProjectHeroImage(url);
+                          } catch (err) {
+                            alert('Photo upload failed. Please try again.');
+                          } finally {
+                            setIsUploadingProjectImage(false);
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor="projectPhotoUpload"
+                        className="w-full py-3.5 px-4 rounded-xl border border-dashed border-indigo-300 bg-indigo-50/50 hover:bg-indigo-100/50 text-indigo-700 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all mb-2 shadow-sm"
+                      >
+                        <ImageIcon className="w-4 h-4 text-indigo-600" />
+                        <span>{isUploadingProjectImage ? 'Uploading Project Photo...' : '📷 Upload Real Project Photo from Device'}</span>
+                      </label>
+                    </div>
+
+                    <input
+                      id="projectHeroImage"
+                      type="text"
+                      value={projectHeroImage}
+                      onChange={(e) => setProjectHeroImage(e.target.value)}
+                      placeholder="Or paste photo URL https://..."
+                      className={inputClass}
+                    />
+
+                    {projectHeroImage && (
+                      <div className="mt-3 rounded-2xl overflow-hidden h-48 bg-slate-900 border border-slate-200 relative shadow-inner">
+                        <img src={projectHeroImage} alt="Project Preview" className="w-full h-full object-cover" />
+                        <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-md text-white text-[10px] font-bold">
+                          Live Photo Preview
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Publish Real Project to Portfolio</span>
+                  </button>
+                </form>
               </div>
             )}
 

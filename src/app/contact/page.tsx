@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Phone, Mail, MapPin, Send, CheckCircle2, MessageSquare, Clock } from 'lucide-react';
+import { Phone, Mail, MapPin, Send, CheckCircle2, AlertCircle, MessageSquare, Clock, Loader2 } from 'lucide-react';
 import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import { COMPANY_INFO } from '@/lib/data/company';
 
@@ -18,13 +18,29 @@ export default function ContactPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setSubmitSuccess(false);
+    setErrorMessage(null);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to send inquiry. Please try again.');
+      }
+
       setSubmitSuccess(true);
       setFormData({
         name: '',
@@ -34,7 +50,12 @@ export default function ContactPage() {
         serviceRequired: 'Web Development',
         message: '',
       });
-    }, 150);
+    } catch (err: any) {
+      console.error('Contact form submission error:', err);
+      setErrorMessage(err?.message || 'Something went wrong. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -60,9 +81,16 @@ export default function ContactPage() {
           <h2 className="text-xl font-bold text-slate-900">Send Us a Message</h2>
 
           {submitSuccess && (
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 animate-in fade-in">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-              <span>Thank you! Your message has been received. We will get back to you shortly.</span>
+              <span>Thank you! Your inquiry has been sent and recorded. We will get back to you shortly.</span>
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 animate-in fade-in">
+              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+              <span>{errorMessage}</span>
             </div>
           )}
 
@@ -171,8 +199,12 @@ export default function ContactPage() {
               disabled={isSubmitting}
               className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
             >
-              <Send className="w-4 h-4" />
-              <span>{isSubmitting ? 'Sending...' : 'Submit Inquiry'}</span>
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              <span>{isSubmitting ? 'Sending Inquiry...' : 'Submit Inquiry'}</span>
             </button>
           </form>
         </div>

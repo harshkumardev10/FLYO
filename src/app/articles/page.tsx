@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { ArrowRight, BookOpen, Clock, User, Sparkles } from 'lucide-react';
 import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import { ARTICLES_DATA } from '@/lib/data/articles';
@@ -48,28 +47,32 @@ export default function ArticlesIndexPage() {
       {/* Featured Article Card */}
       {featuredArticle && (
         <Link href={`/articles/${featuredArticle.slug}`} className="block group">
-          <div className="rounded-3xl bg-white border border-slate-200 hover:border-blue-300 hover:shadow-xl transition-all overflow-hidden">
+          <div className="rounded-3xl bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-xl transition-all overflow-hidden">
             {/* Hero Image */}
-            {featuredArticle.heroImage && (
-              <div className="relative w-full h-56 sm:h-72 overflow-hidden">
-                <Image
+            <div className="relative w-full h-56 sm:h-72 overflow-hidden bg-slate-900 flex items-center justify-center">
+              {featuredArticle.heroImage ? (
+                <img
                   src={featuredArticle.heroImage}
                   alt={featuredArticle.title}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  sizes="(max-width: 768px) 100vw, 800px"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                <span className="absolute bottom-4 left-4 px-2.5 py-1 rounded bg-blue-600 text-white text-xs font-bold uppercase tracking-wider">
-                  Featured · {featuredArticle.category}
-                </span>
-              </div>
-            )}
+              ) : null}
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent pointer-events-none" />
+              <span className="absolute bottom-4 left-4 px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold uppercase tracking-wider shadow-sm">
+                Featured · {featuredArticle.category}
+              </span>
+            </div>
+
             <div className="p-6 sm:p-8 space-y-4">
               <div className="flex items-center gap-3 text-xs text-slate-500 font-semibold">
                 <span>{featuredArticle.readingTimeMinutes} min read</span>
+                <span>•</span>
+                <span>{featuredArticle.publishedAt}</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 group-hover:text-blue-700 transition-colors">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors">
                 {featuredArticle.title}
               </h2>
               <p className="text-sm text-slate-600 leading-relaxed">
@@ -77,7 +80,7 @@ export default function ArticlesIndexPage() {
               </p>
               <div className="pt-2 flex items-center justify-between text-xs text-slate-500">
                 <span>By {featuredArticle.authorName}</span>
-                <span className="font-bold text-blue-600 flex items-center gap-1 group-hover:translate-x-1 transition-all">
+                <span className="font-bold text-indigo-600 flex items-center gap-1 group-hover:translate-x-1 transition-all">
                   Read Featured Guide
                   <ArrowRight className="w-3.5 h-3.5" />
                 </span>
@@ -108,26 +111,28 @@ export default function ArticlesIndexPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {otherArticles.map((article) => (
           <Link key={article.slug} href={`/articles/${article.slug}`} className="block group">
-            <article className="rounded-2xl bg-white border border-slate-200 hover:border-blue-300 hover:shadow-lg transition-all flex flex-col overflow-hidden h-full">
+            <article className="rounded-2xl bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-lg transition-all flex flex-col overflow-hidden h-full">
               {/* Article Image */}
-              {article.heroImage && (
-                <div className="relative w-full h-44 overflow-hidden flex-shrink-0">
-                  <Image
+              <div className="relative w-full h-44 bg-slate-900 overflow-hidden flex-shrink-0">
+                {article.heroImage ? (
+                  <img
                     src={article.heroImage}
                     alt={article.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    sizes="(max-width: 768px) 100vw, 400px"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                </div>
-              )}
+                ) : null}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 to-transparent pointer-events-none" />
+              </div>
+
               <div className="p-5 flex flex-col flex-1 space-y-3">
                 <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
-                  <span className="uppercase tracking-wider font-bold text-blue-600">{article.category}</span>
+                  <span className="uppercase tracking-wider font-bold text-indigo-600">{article.category}</span>
                   <span>{article.readingTimeMinutes} min read</span>
                 </div>
-                <h2 className="text-base font-bold text-slate-900 group-hover:text-blue-700 transition-colors leading-snug">
+                <h2 className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors leading-snug">
                   {article.title}
                 </h2>
                 <p className="text-xs text-slate-600 line-clamp-2 flex-1">
@@ -135,7 +140,7 @@ export default function ArticlesIndexPage() {
                 </p>
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
                   <span>{article.authorName}</span>
-                  <span className="font-bold text-blue-600 flex items-center gap-1 group-hover:translate-x-1 transition-all">
+                  <span className="font-bold text-indigo-600 flex items-center gap-1 group-hover:translate-x-1 transition-all">
                     Read
                     <ArrowRight className="w-3.5 h-3.5" />
                   </span>

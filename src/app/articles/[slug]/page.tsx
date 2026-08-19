@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { Calendar, Clock, User, ArrowRight, BookOpen } from 'lucide-react';
+import { Calendar, Clock, User, ArrowRight, BookOpen, Tag } from 'lucide-react';
 import { ARTICLES_DATA } from '@/lib/data/articles';
 import { getAllArticles, syncFromFirestore } from '@/lib/data/articlesStore';
 import { SERVICES_DATA } from '@/lib/data/services';
 import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import { ArticleItem } from '@/lib/types/seo';
+import { formatContentWithHyperlinks } from '@/lib/utils/formatContent';
 
 interface ArticlePageProps {
   params: {
@@ -20,6 +20,7 @@ export default function ArticleDetailPage({ params }: ArticlePageProps) {
   const [article, setArticle] = useState<ArticleItem | null>(() => {
     return ARTICLES_DATA.find((a) => a.slug === params.slug) || null;
   });
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     const load = () => {
@@ -47,6 +48,8 @@ export default function ArticleDetailPage({ params }: ArticlePageProps) {
     ? SERVICES_DATA.find((s) => s.slug === article.relatedServiceSlug)
     : null;
 
+  const formattedHtml = formatContentWithHyperlinks(article.contentHtml);
+
   return (
     <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 pb-20">
       <Breadcrumbs
@@ -56,25 +59,29 @@ export default function ArticleDetailPage({ params }: ArticlePageProps) {
         ]}
       />
 
-      {/* Hero Image */}
-      {article.heroImage && (
-        <div className="relative w-full h-64 sm:h-80 md:h-96 rounded-2xl overflow-hidden -mt-2 mb-2">
-          <Image
+      {/* Hero Image / Header Banner */}
+      {article.heroImage && !imgError ? (
+        <div className="relative w-full h-64 sm:h-80 md:h-96 rounded-3xl overflow-hidden -mt-2 mb-2 bg-slate-100 border border-slate-200">
+          <img
             src={article.heroImage}
             alt={article.title}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 900px"
-            priority
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
+        </div>
+      ) : (
+        <div className="relative w-full h-48 sm:h-64 rounded-3xl overflow-hidden -mt-2 mb-2 bg-gradient-to-r from-indigo-900 via-slate-900 to-violet-900 p-8 flex items-end">
+          <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-xs font-bold uppercase tracking-wider border border-white/30">
+            {article.category}
+          </span>
         </div>
       )}
 
       {/* Header */}
       <div className="space-y-4 border-b border-slate-200 pb-8">
-        <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
-          <span className="px-2.5 py-1 rounded bg-blue-50 text-blue-700 font-bold uppercase tracking-wider">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 font-medium">
+          <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold uppercase tracking-wider border border-indigo-100">
             {article.category}
           </span>
           <span className="flex items-center gap-1">
@@ -90,15 +97,15 @@ export default function ArticleDetailPage({ params }: ArticlePageProps) {
         </h1>
 
         <div className="flex items-center gap-3 pt-2 text-xs text-slate-600">
-          <User className="w-4 h-4 text-blue-600" />
+          <User className="w-4 h-4 text-indigo-600" />
           <span>Written by <strong>{article.authorName}</strong> ({article.authorRole})</span>
         </div>
       </div>
 
-      {/* Article Content */}
+      {/* Article Content with Working Hypertext Links */}
       <div
-        className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-3 prose-p:text-slate-700 prose-p:leading-relaxed prose-p:text-sm prose-li:text-sm prose-li:text-slate-700"
-        dangerouslySetInnerHTML={{ __html: article.contentHtml }}
+        className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-3 prose-p:text-slate-700 prose-p:leading-relaxed prose-p:text-sm sm:prose-p:text-base prose-a:text-indigo-600 prose-a:underline font-normal"
+        dangerouslySetInnerHTML={{ __html: formattedHtml }}
       />
 
       {/* Related Service Link */}
@@ -122,7 +129,7 @@ export default function ArticleDetailPage({ params }: ArticlePageProps) {
       )}
 
       {/* CTA */}
-      <div className="p-8 rounded-2xl bg-slate-900 text-white text-center space-y-4">
+      <div className="p-8 rounded-3xl bg-slate-900 text-white text-center space-y-4 shadow-sm">
         <h2 className="text-xl sm:text-2xl font-bold">Have questions about your local business online?</h2>
         <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
           We're happy to discuss your digital presence and point you in the right direction.

@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, X, ExternalLink, GraduationCap, UserCheck } from 'lucide-react';
 import { COMPANY_INFO } from '@/lib/data/company';
 import { getVisibleTeamMembers, syncTeamFromFirestore } from '@/lib/data/teamStore';
 import { TeamMember } from '@/lib/types/seo';
 
 export default function AboutPage() {
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
 
   useEffect(() => {
     // Load from local cache first (instant)
@@ -45,6 +46,7 @@ export default function AboutPage() {
           <h2 className="text-2xl font-bold text-slate-900">
             The people behind {COMPANY_INFO.name}
           </h2>
+          <p className="text-xs text-slate-500">Click on any card to view detailed team profile.</p>
         </div>
 
         {members.length === 0 ? (
@@ -54,57 +56,134 @@ export default function AboutPage() {
             {members.map((member) => (
               <div
                 key={member.id}
-                className="p-6 rounded-2xl bg-white border border-slate-200 space-y-3 flex flex-col justify-between"
+                onClick={() => setSelectedMember(member)}
+                className="p-6 rounded-2xl bg-white border border-slate-200 hover:border-indigo-400 hover:shadow-lg transition-all space-y-4 flex flex-col justify-between cursor-pointer group"
               >
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {/* Avatar */}
-                  {member.avatar ? (
-                    <img
-                      src={member.avatar}
-                      alt={member.name}
-                      className="w-12 h-12 rounded-full object-cover border border-indigo-100"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-extrabold text-sm">
-                      {member.name.split(' ').map((n) => n[0]).join('')}
-                    </div>
-                  )}
-                  <h3 className="font-bold text-base text-slate-900">{member.name}</h3>
-                  <span className="text-xs font-bold text-indigo-600 block">{member.role}</span>
-                  <p className="text-xs text-slate-600 leading-relaxed pt-1">{member.bio}</p>
-                </div>
-
-                {/* Social links */}
-                {(member.linkedin || member.twitter) && (
-                  <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
-                    {member.linkedin && (
-                      <a
-                        href={member.linkedin}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-indigo-600 hover:underline font-semibold"
-                      >
-                        LinkedIn →
-                      </a>
-                    )}
-                    {member.twitter && (
-                      <a
-                        href={member.twitter}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-indigo-600 hover:underline font-semibold"
-                      >
-                        Twitter →
-                      </a>
+                  <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                    {member.avatar ? (
+                      <img
+                        src={member.avatar}
+                        alt={member.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    ) : (
+                      <span className="text-indigo-700 font-extrabold text-lg">
+                        {member.name.split(' ').map((n) => n[0]).join('')}
+                      </span>
                     )}
                   </div>
-                )}
+
+                  <div>
+                    <h3 className="font-bold text-base text-slate-900 group-hover:text-indigo-600 transition-colors flex items-center justify-between">
+                      <span>{member.name}</span>
+                      <UserCheck className="w-4 h-4 text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </h3>
+                    <span className="text-xs font-bold text-indigo-600 block">{member.role}</span>
+                    {member.college && (
+                      <span className="text-[11px] text-slate-400 font-medium block pt-0.5">{member.college}</span>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-slate-600 leading-relaxed line-clamp-3 pt-1">{member.bio}</p>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-indigo-600 font-bold">
+                  <span>View Full Profile</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Profile Detail Modal */}
+      {selectedMember && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl relative animate-in zoom-in-95 duration-200">
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedMember(null)}
+              className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-start gap-4">
+              <div className="w-20 h-20 rounded-2xl overflow-hidden bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
+                {selectedMember.avatar ? (
+                  <img
+                    src={selectedMember.avatar}
+                    alt={selectedMember.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-indigo-700 font-extrabold text-2xl">
+                    {selectedMember.name.split(' ').map((n) => n[0]).join('')}
+                  </span>
+                )}
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-2xl font-bold text-slate-900">{selectedMember.name}</h3>
+                <span className="text-xs font-bold text-indigo-600 block">{selectedMember.role}</span>
+                {selectedMember.college && (
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium pt-1">
+                    <GraduationCap className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>{selectedMember.college}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">About {selectedMember.name.split(' ')[0]}</h4>
+              <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                {selectedMember.bio}
+              </p>
+            </div>
+
+            {/* Social & Contact Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <div className="flex gap-2">
+                {selectedMember.linkedin && (
+                  <a
+                    href={selectedMember.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 text-xs font-bold transition-colors inline-flex items-center gap-1.5"
+                  >
+                    <span>LinkedIn</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+                {selectedMember.twitter && (
+                  <a
+                    href={selectedMember.twitter}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 text-xs font-bold transition-colors inline-flex items-center gap-1.5"
+                  >
+                    <span>Twitter</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+
+              <Link
+                href="/contact"
+                onClick={() => setSelectedMember(null)}
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors inline-flex items-center gap-1.5"
+              >
+                <span>Get In Touch</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Call to Action */}
       <div className="p-8 sm:p-10 rounded-3xl bg-slate-900 text-white text-center space-y-4">
