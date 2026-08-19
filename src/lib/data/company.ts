@@ -3,23 +3,36 @@ export const COMPANY_INFO = {
   shortName: 'Flyo',
   legalName: 'Flyo Digital Studio LLP',
   tagline: 'Make Your Business Fly',
+  alternateName: ['flyoo', 'flyoo digital', 'Flyoo', 'Flyo Digital', 'FLYO', 'flyo businesses'],
   description:
-    'We are a small startup founded and operated by college students. We build modern websites, create promotional content, manage social media, and help local businesses fly in the digital world.',
-  url: 'https://flyodigital.com',
-  logo: 'https://flyodigital.com/icon.svg',
+    'We are a small startup founded and operated by college students from GLA University. We build modern websites, create promotional content, manage social media, and help local businesses fly in the digital world.',
+  url: 'https://flyoo.vercel.app',
+  logo: 'https://flyoo.vercel.app/kingfisher-logo.jpg',
   foundingYear: '2026',
-  
+
+  // Founder Information
+  founder: {
+    name: 'Harsh Kumar',
+    jobTitle: 'Founder & CEO',
+    university: 'GLA University',
+    universityUrl: 'https://www.gla.ac.in',
+    sameAs: [
+      'https://linkedin.com/in/harshkumar',
+      'https://instagram.com/flyodigital',
+    ],
+  },
+
   // Local Contact Details
-  email: 'hello@flyodigital.com',
+  email: 'flyobusinesses@gmail.com',
   phone: '+91 82739 46584',
   phoneDisplay: '+91 82739 46584',
   whatsapp: '+918273946584',
 
   address: {
-    streetAddress: 'Main Campus Road, Student Innovation Hub',
-    addressLocality: 'Tech Park Zone',
-    addressRegion: 'DL',
-    postalCode: '110001',
+    streetAddress: 'GLA University Campus',
+    addressLocality: 'Mathura',
+    addressRegion: 'UP',
+    postalCode: '281406',
     addressCountry: 'IN',
   },
 

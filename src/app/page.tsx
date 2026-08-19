@@ -26,10 +26,11 @@ import { ARTICLES_DATA } from '@/lib/data/articles';
 import { COMPANY_INFO } from '@/lib/data/company';
 
 export const metadata = generatePageMetadata({
-  title: 'FLYO | Make Your Business Fly - Local SEO & Web Development India',
-  description: 'FLYO helps local businesses fly in the digital world. We build stunning websites, run local SEO, create promotional content, and manage social media — all by a passionate student-led team.',
+  title: 'Flyoo | Make Your Business Fly - Web Design & Local SEO India',
+  description: 'Flyoo is a student-led digital studio by Harsh Kumar (GLA University, Mathura). We build fast websites, run local SEO campaigns, create promotional content & manage social media for Indian businesses. Search "flyoo" to find us.',
   canonicalUrl: '/',
 });
+
 
 export default function HomePage() {
   const iconMap: Record<string, React.ReactNode> = {
@@ -561,6 +562,16 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* SEO: Founder & Brand Signal — readable by Google & AI crawlers */}
+      <section className="max-w-3xl mx-auto px-4 py-10 text-center space-y-2">
+        <p className="text-xs text-slate-400 leading-relaxed">
+          <strong className="text-slate-500">Flyoo</strong> (also called <em>flyo</em>, <em>flyoo digital</em>, or <em>flyoo businesses</em>) is a digital studio founded by{' '}
+          <strong className="text-slate-500">Harsh Kumar</strong>, a student at{' '}
+          <strong className="text-slate-500">GLA University, Mathura, Uttar Pradesh</strong>.
+          Flyoo helps local Indian businesses grow online — search <strong className="text-slate-500">"flyoo"</strong> to find us.
+        </p>
       </section>
 
     </div>
