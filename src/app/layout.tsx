@@ -28,9 +28,9 @@ export const metadata: Metadata = {
     'Make Your Business Fly',
   ],
   icons: {
-    icon: '/kingfisher-logo.jpg',
-    apple: '/kingfisher-logo.jpg',
-    shortcut: '/kingfisher-logo.jpg',
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
   },
   authors: [
     { name: COMPANY_INFO.founder.name },
