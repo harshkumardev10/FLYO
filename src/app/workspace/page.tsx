@@ -35,6 +35,7 @@ import {
   ShieldCheck,
   Clock3,
   PauseCircle,
+  Loader2,
   Image as ImageIcon
 } from 'lucide-react';
 import { uploadImageToCloudinary } from '@/lib/uploadImage';
@@ -105,6 +106,8 @@ export default function WorkspaceAdminPage() {
   });
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [teamSuccess, setTeamSuccess] = useState('');
+  const [teamError, setTeamError] = useState('');
+  const [isSavingTeam, setIsSavingTeam] = useState(false);
   const [isUploadingTeamAvatar, setIsUploadingTeamAvatar] = useState(false);
 
   // Article Upload Form State
@@ -412,26 +415,53 @@ export default function WorkspaceAdminPage() {
 
   const handleSaveTeamMember = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!teamForm.name || !teamForm.role) return;
-    const id = editingTeamId || teamForm.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-    const member: TeamMember = {
-      id,
-      name: teamForm.name,
-      role: teamForm.role,
-      bio: teamForm.bio,
-      college: teamForm.college,
-      avatar: teamForm.avatar,
-      linkedin: teamForm.linkedin || undefined,
-      twitter: teamForm.twitter || undefined,
-      order: Number(teamForm.order) || 0,
-      visible: teamForm.visible,
-    };
-    const ok = await saveTeamMember(member);
-    if (ok) {
-      setTeamMembers(getAllTeamMembersForAdmin());
-      setTeamSuccess(editingTeamId ? '✅ Member updated!' : '✅ Member added!');
-      setTimeout(() => setTeamSuccess(''), 4000);
+    setTeamError('');
+    setTeamSuccess('');
+
+    if (!teamForm.name.trim() || !teamForm.role.trim()) {
+      setTeamError('Please enter both Full Name and Role.');
+      return;
+    }
+
+    setIsSavingTeam(true);
+    try {
+      const id = editingTeamId || teamForm.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      const member: TeamMember = {
+        id: id || `member-${Date.now()}`,
+        name: teamForm.name.trim(),
+        role: teamForm.role.trim(),
+        bio: teamForm.bio.trim(),
+        college: teamForm.college.trim(),
+        avatar: teamForm.avatar.trim(),
+        linkedin: teamForm.linkedin.trim() || undefined,
+        twitter: teamForm.twitter.trim() || undefined,
+        order: Number(teamForm.order) || 0,
+        visible: teamForm.visible,
+      };
+
+      await saveTeamMember(member);
+
+      // Fetch fresh list and put newly updated/added member at the top (first position)
+      const freshList = getAllTeamMembersForAdmin();
+      const updatedMember = freshList.find(m => m.id === member.id);
+      const otherMembers = freshList.filter(m => m.id !== member.id);
+      const reordered = updatedMember ? [updatedMember, ...otherMembers] : freshList;
+
+      setTeamMembers(reordered);
+      setTeamSuccess(editingTeamId ? `✅ ${member.name} updated and moved to top of profile list!` : `✅ ${member.name} added to team!`);
+      setTimeout(() => setTeamSuccess(''), 5000);
       resetTeamForm();
+
+      // Scroll to members list below smoothly
+      const listEl = document.getElementById('team-members-list');
+      if (listEl) {
+        listEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    } catch (err) {
+      console.error('Save team error:', err);
+      setTeamError('Failed to save team member. Please try again.');
+    } finally {
+      setIsSavingTeam(false);
     }
   };
 
@@ -1516,6 +1546,14 @@ export default function WorkspaceAdminPage() {
                   )}
                 </div>
 
+                {/* Error banner */}
+                {teamError && (
+                  <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
+                    <span>{teamError}</span>
+                  </div>
+                )}
+
                 {/* Success banner */}
                 {teamSuccess && (
                   <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-3">
@@ -1684,16 +1722,31 @@ export default function WorkspaceAdminPage() {
                     )}
                     <button
                       type="submit"
-                      className="flex-1 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20"
+                      disabled={isSavingTeam}
+                      className="flex-1 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 active:scale-95 cursor-pointer"
                     >
-                      {editingTeamId ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                      {editingTeamId ? 'Save Changes' : 'Add Member'}
+                      {isSavingTeam ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Saving Changes...</span>
+                        </>
+                      ) : editingTeamId ? (
+                        <>
+                          <Save className="w-4 h-4" />
+                          <span>Save Changes</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4" />
+                          <span>Add Member</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </form>
 
                 {/* ── MEMBERS LIST ── */}
-                <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                <div id="team-members-list" className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                   <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                     <h2 className="text-sm font-bold text-slate-700">All Team Members ({teamMembers.length})</h2>
                     <span className="text-[11px] text-slate-400">{teamMembers.filter(m => m.visible).length} visible on site</span>

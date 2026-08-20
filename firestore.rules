@@ -7,28 +7,44 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email.lower() == 'harshkumarrr143@gmail.com';
     }
 
-    // 1. Articles collection (Public can read approved articles, admins can manage)
+    // 1. Articles collection
     match /articles/{articleId} {
       allow read: if true;
-      allow create, update: if true; // Allows website partner uploads & edits
-      allow delete: if isPrimaryAdmin() || true; // Delete articles
+      allow create, update, delete: if true;
     }
 
-    // 2. Settings & Allowed Emails (Primary Admin controls access list)
+    // 2. Settings & Allowed Emails
     match /settings/{settingId} {
-      allow read: if true;
-      allow write: if true;
+      allow read, write: if true;
     }
 
     match /allowed_emails/{emailId} {
-      allow read: if true;
-      allow write: if true;
+      allow read, write: if true;
     }
 
     // 3. Hidden Slugs collection
     match /hidden_slugs/{slugId} {
-      allow read: if true;
-      allow write: if true;
+      allow read, write: if true;
+    }
+
+    // 4. Team Members collection
+    match /team_members/{memberId} {
+      allow read, write: if true;
+    }
+
+    // 5. Work Projects collection
+    match /projects/{projectId} {
+      allow read, write: if true;
+    }
+
+    // 6. Contact Inquiries collection
+    match /contact_inquiries/{inquiryId} {
+      allow read, write: if true;
+    }
+
+    // Default fallback: allow read/write for all application collections
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }
