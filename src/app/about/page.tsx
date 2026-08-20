@@ -7,6 +7,33 @@ import { COMPANY_INFO } from '@/lib/data/company';
 import { getVisibleTeamMembers, syncTeamFromFirestore } from '@/lib/data/teamStore';
 import { TeamMember } from '@/lib/types/seo';
 
+function TeamAvatarImage({ avatar, name, isModal = false }: { avatar?: string; name: string; isModal?: boolean }) {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [avatar]);
+
+  const initials = name ? name.split(' ').map((n) => n[0]).join('') : '';
+
+  if (avatar && !hasError) {
+    return (
+      <img
+        src={avatar}
+        alt={name}
+        className={isModal ? "w-full h-full object-cover" : "w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"}
+        onError={() => setHasError(true)}
+      />
+    );
+  }
+
+  return (
+    <span className={isModal ? "text-indigo-700 font-extrabold text-2xl" : "text-indigo-700 font-extrabold text-lg"}>
+      {initials}
+    </span>
+  );
+}
+
 export default function AboutPage() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
@@ -72,18 +99,7 @@ export default function AboutPage() {
                 <div className="space-y-3">
                   {/* Photo Avatar */}
                   <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0 shadow-sm">
-                    {member.avatar ? (
-                      <img
-                        src={member.avatar}
-                        alt={member.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                      />
-                    ) : (
-                      <span className="text-indigo-700 font-extrabold text-lg">
-                        {member.name.split(' ').map((n) => n[0]).join('')}
-                      </span>
-                    )}
+                    <TeamAvatarImage avatar={member.avatar} name={member.name} />
                   </div>
 
                   <div className="space-y-1">
@@ -134,17 +150,7 @@ export default function AboutPage() {
 
             <div className="flex items-start gap-4">
               <div className="w-20 h-20 rounded-2xl overflow-hidden bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0 shadow-md">
-                {selectedMember.avatar ? (
-                  <img
-                    src={selectedMember.avatar}
-                    alt={selectedMember.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-indigo-700 font-extrabold text-2xl">
-                    {selectedMember.name.split(' ').map((n) => n[0]).join('')}
-                  </span>
-                )}
+                <TeamAvatarImage avatar={selectedMember.avatar} name={selectedMember.name} isModal={true} />
               </div>
               <div className="space-y-1">
                 <h3 className="text-2xl font-bold text-slate-900">{selectedMember.name}</h3>
