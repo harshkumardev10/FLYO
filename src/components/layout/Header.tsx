@@ -7,10 +7,13 @@ import { usePathname } from 'next/navigation';
 import { Menu, X, ArrowRight, Lock } from 'lucide-react';
 import { COMPANY_INFO } from '@/lib/data/company';
 import { getAllowedAdminEmails } from '@/lib/data/articlesStore';
+import { useRipple } from '@/components/ui/RippleButton';
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [partnerEmail, setPartnerEmail] = useState<string | null>(null);
+  const ripple = useRipple('rgba(255,255,255,0.5)');
+  const rippleDark = useRipple('rgba(99,102,241,0.25)');
   const pathname = usePathname();
 
   useEffect(() => {
@@ -94,8 +97,9 @@ export function Header() {
 
             <Link
               href="/contact"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold text-sm shadow-lg hover:shadow-sky-500/40 transition-all duration-150 active:scale-95 hover:scale-105"
-              style={{background: 'linear-gradient(135deg, #0C1A3A 0%, #1D4ED8 100%)'}}
+              onClick={ripple}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold text-sm shadow-lg hover:shadow-sky-500/40 transition-all duration-100 active:scale-95 hover:scale-105"
+              style={{background: 'linear-gradient(135deg, #0C1A3A 0%, #1D4ED8 100%)', position:'relative', overflow:'hidden'}}
             >
               <span>Let&#39;s Talk</span>
               <ArrowRight className="w-4 h-4" />
@@ -105,8 +109,8 @@ export function Header() {
           {/* Mobile Hamburger */}
           <button
             type="button"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            onClick={(e) => { rippleDark(e); setIsMobileMenuOpen(!isMobileMenuOpen); }}
+            className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:scale-90 relative overflow-hidden"
             aria-label="Toggle navigation menu"
             aria-expanded={isMobileMenuOpen}
           >
@@ -142,9 +146,9 @@ export function Header() {
           <div className="pt-2">
             <Link
               href="/contact"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="w-full text-center py-3 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg"
-              style={{background: 'linear-gradient(135deg, #0C1A3A 0%, #1D4ED8 100%)'}}
+              onClick={(e) => { ripple(e); setIsMobileMenuOpen(false); }}
+              className="w-full text-center py-3 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform duration-100"
+              style={{background: 'linear-gradient(135deg, #0C1A3A 0%, #1D4ED8 100%)', position:'relative', overflow:'hidden'}}
             >
               <span>Let&#39;s Talk</span>
               <ArrowRight className="w-4 h-4" />

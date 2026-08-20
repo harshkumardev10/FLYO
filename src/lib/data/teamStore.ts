@@ -3,7 +3,7 @@ import { TEAM_MEMBERS as STATIC_TEAM } from './team';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, deleteDoc, getDocs, collection } from 'firebase/firestore';
 
-const STORAGE_KEY = 'flyo_team_members_v1';
+const STORAGE_KEY = 'flyo_team_members_v2'; // bumped version to bust stale v1 cache
 
 function readLocal<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
@@ -22,22 +22,33 @@ function writeLocal<T>(key: string, data: T): void {
   } catch {}
 }
 
+// Track whether we have fetched from Firestore at least once this session
+let firestoreSynced = false;
+
 // In-memory cache; initialised from localStorage (or falls back to static defaults)
 let teamCache: TeamMember[] = readLocal<TeamMember[]>(STORAGE_KEY, STATIC_TEAM);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sync from Firestore
+// Sync from Firestore  (always authoritative — overrides local cache)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function syncTeamFromFirestore(): Promise<void> {
   if (!db) return;
   try {
     const snap = await getDocs(collection(db, 'team_members'));
+
+    // ALWAYS overwrite — even if the collection is empty, that's the truth.
+    // This fixes cross-device / incognito stale data.
     if (!snap.empty) {
       teamCache = snap.docs
         .map(d => d.data() as TeamMember)
         .sort((a, b) => a.order - b.order);
-      writeLocal(STORAGE_KEY, teamCache);
+    } else {
+      // Firestore collection empty → no admin-defined members yet → fall back to static
+      teamCache = [...STATIC_TEAM];
     }
+
+    writeLocal(STORAGE_KEY, teamCache);
+    firestoreSynced = true;
   } catch (err) {
     console.error('Team Firestore sync error:', err);
   }
@@ -57,6 +68,11 @@ export function getVisibleTeamMembers(): TeamMember[] {
   return [...teamCache]
     .filter(m => m.visible)
     .sort((a, b) => a.order - b.order);
+}
+
+/** Whether we have confirmed data from Firestore this session */
+export function isTeamSynced(): boolean {
+  return firestoreSynced;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

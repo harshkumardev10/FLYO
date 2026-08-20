@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, X, ExternalLink, GraduationCap, UserCheck } from 'lucide-react';
+import { ArrowRight, X, ExternalLink, GraduationCap, UserCheck, Loader2 } from 'lucide-react';
 import { COMPANY_INFO } from '@/lib/data/company';
 import { getVisibleTeamMembers, syncTeamFromFirestore } from '@/lib/data/teamStore';
 import { TeamMember } from '@/lib/types/seo';
@@ -10,12 +10,15 @@ import { TeamMember } from '@/lib/types/seo';
 export default function AboutPage() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load from local cache first (instant)
-    setMembers(getVisibleTeamMembers());
-    // Then sync from Firestore for freshest data
-    syncTeamFromFirestore().then(() => setMembers(getVisibleTeamMembers()));
+    // Always fetch fresh data from Firestore first — never rely on stale localStorage
+    // This ensures other devices, incognito tabs and new users all see the latest data.
+    syncTeamFromFirestore()
+      .then(() => setMembers(getVisibleTeamMembers()))
+      .catch(() => setMembers(getVisibleTeamMembers())) // fallback to cache on error
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -49,7 +52,13 @@ export default function AboutPage() {
           <p className="text-xs text-slate-500">Click on any card to view detailed team profile.</p>
         </div>
 
-        {members.length === 0 ? (
+        {loading ? (
+          /* Loading skeleton while Firestore sync completes */
+          <div className="flex items-center gap-2 text-slate-400 text-sm py-8">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Loading team…</span>
+          </div>
+        ) : members.length === 0 ? (
           <p className="text-sm text-slate-500">Team coming soon…</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
