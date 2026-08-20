@@ -3,7 +3,31 @@ import { TEAM_MEMBERS as STATIC_TEAM } from './team';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, deleteDoc, getDocs, getDoc, collection } from 'firebase/firestore';
 
-const STORAGE_KEY = 'flyo_team_members_v4';
+const STORAGE_KEY = 'flyo_team_members_v6';
+
+/**
+ * Sanitize member object so NO field is ever `undefined`.
+ * Firestore throws a silent error if any field in an object is `undefined`.
+ */
+export function sanitizeMember(m: Partial<TeamMember>): TeamMember {
+  const clean: any = {
+    id: String(m.id || '').trim() || `member-${Date.now()}`,
+    name: String(m.name || '').trim(),
+    role: String(m.role || '').trim(),
+    bio: String(m.bio || '').trim(),
+    college: String(m.college || '').trim(),
+    avatar: String(m.avatar || '').trim(),
+    order: Number(m.order) || 0,
+    visible: m.visible !== false,
+  };
+  if (m.linkedin && String(m.linkedin).trim()) {
+    clean.linkedin = String(m.linkedin).trim();
+  }
+  if (m.twitter && String(m.twitter).trim()) {
+    clean.twitter = String(m.twitter).trim();
+  }
+  return clean as TeamMember;
+}
 
 function readLocal<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
@@ -25,51 +49,40 @@ function writeLocal<T>(key: string, data: T): void {
 let firestoreSynced = false;
 
 // Initialise in-memory cache from localStorage (or fall back to static defaults)
-let teamCache: TeamMember[] = readLocal<TeamMember[]>(STORAGE_KEY, STATIC_TEAM);
+let teamCache: TeamMember[] = readLocal<TeamMember[]>(STORAGE_KEY, STATIC_TEAM).map(sanitizeMember);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sync from Firestore (Fetches Cloud settings document — works on ALL devices)
+// Sync from Firestore (Cloud settings store is primary — sanitized)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function syncTeamFromFirestore(): Promise<void> {
   if (!db) return;
   try {
     // 1. Primary Cloud Sync: Read from settings/team_members_store
-    let fetchedMembers: TeamMember[] = [];
-    try {
-      const settingsDoc = await getDoc(doc(db, 'settings', 'team_members_store'));
-      if (settingsDoc.exists()) {
-        const data = settingsDoc.data();
-        if (Array.isArray(data?.members) && data.members.length > 0) {
-          fetchedMembers = data.members as TeamMember[];
-        }
+    const settingsDoc = await getDoc(doc(db, 'settings', 'team_members_store'));
+    if (settingsDoc.exists()) {
+      const data = settingsDoc.data();
+      if (Array.isArray(data?.members) && data.members.length > 0) {
+        teamCache = (data.members as TeamMember[])
+          .map(sanitizeMember)
+          .sort((a, b) => a.order - b.order);
+        writeLocal(STORAGE_KEY, teamCache);
+        firestoreSynced = true;
+        return;
       }
-    } catch (err) {
-      console.warn('Settings team sync notice:', err);
     }
 
-    // 2. Secondary Cloud Sync: Fall back / merge with collection('team_members')
-    try {
-      const snap = await getDocs(collection(db, 'team_members'));
-      if (!snap.empty) {
-        const collMembers = snap.docs.map(d => d.data() as TeamMember);
-        // Merge by id (collection members override if newer)
-        const idMap = new Map<string, TeamMember>();
-        fetchedMembers.forEach(m => idMap.set(m.id, m));
-        collMembers.forEach(m => idMap.set(m.id, m));
-        fetchedMembers = Array.from(idMap.values());
-      }
-    } catch (err) {
-      console.warn('Collection team sync notice:', err);
-    }
-
-    if (fetchedMembers.length > 0) {
-      teamCache = fetchedMembers.sort((a, b) => a.order - b.order);
+    // 2. Secondary Cloud Sync: Fallback if settings document doesn't exist
+    const snap = await getDocs(collection(db, 'team_members'));
+    if (!snap.empty) {
+      teamCache = snap.docs
+        .map(d => sanitizeMember(d.data() as TeamMember))
+        .sort((a, b) => a.order - b.order);
       writeLocal(STORAGE_KEY, teamCache);
     }
 
     firestoreSynced = true;
   } catch (err: any) {
-    console.warn('Team Firestore sync error:', err?.message || err);
+    console.warn('Team Firestore sync notice:', err?.message || err);
   }
 }
 
@@ -95,21 +108,24 @@ export function isTeamSynced(): boolean {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Writes (Pushes directly to Firebase Cloud settings store for ALL devices)
+// Writes (Pushes directly to Firebase Cloud settings store — 100% sanitized)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Add or update a team member */
 export async function saveTeamMember(member: TeamMember): Promise<boolean> {
+  const cleanMember = sanitizeMember(member);
+
   // 1. Instantly update local memory & localStorage
-  const filtered = teamCache.filter(m => m.id !== member.id);
-  teamCache = [member, ...filtered].sort((a, b) => a.order - b.order);
+  const filtered = teamCache.filter(m => m.id !== cleanMember.id);
+  teamCache = [cleanMember, ...filtered].sort((a, b) => a.order - b.order);
   writeLocal(STORAGE_KEY, teamCache);
 
-  // 2. Push to Firebase Cloud settings/team_members_store (Works across ALL devices)
+  // 2. Push sanitized list to Firebase Cloud settings/team_members_store
   if (db) {
+    const sanitizedList = teamCache.map(sanitizeMember);
     try {
       await setDoc(doc(db, 'settings', 'team_members_store'), {
-        members: teamCache,
+        members: sanitizedList,
         updatedAt: new Date().toISOString(),
       });
     } catch (err: any) {
@@ -118,7 +134,7 @@ export async function saveTeamMember(member: TeamMember): Promise<boolean> {
 
     // 3. Backup write to collection('team_members')
     try {
-      await setDoc(doc(db, 'team_members', member.id), member);
+      await setDoc(doc(db, 'team_members', cleanMember.id), cleanMember);
     } catch (err: any) {
       console.warn('Collection setDoc notice:', err?.message || err);
     }
@@ -135,9 +151,10 @@ export async function deleteTeamMember(id: string): Promise<boolean> {
 
   // 2. Update Firebase Cloud settings/team_members_store
   if (db) {
+    const sanitizedList = teamCache.map(sanitizeMember);
     try {
       await setDoc(doc(db, 'settings', 'team_members_store'), {
-        members: teamCache,
+        members: sanitizedList,
         updatedAt: new Date().toISOString(),
       });
     } catch (err: any) {

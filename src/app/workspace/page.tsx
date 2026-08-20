@@ -433,8 +433,8 @@ export default function WorkspaceAdminPage() {
         bio: teamForm.bio.trim(),
         college: teamForm.college.trim(),
         avatar: teamForm.avatar.trim(),
-        linkedin: teamForm.linkedin.trim() || undefined,
-        twitter: teamForm.twitter.trim() || undefined,
+        linkedin: teamForm.linkedin.trim(),
+        twitter: teamForm.twitter.trim(),
         order: Number(teamForm.order) || 0,
         visible: teamForm.visible,
       };
