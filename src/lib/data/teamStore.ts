@@ -26,6 +26,12 @@ export function sanitizeMember(m: Partial<TeamMember>): TeamMember {
   if (m.twitter && String(m.twitter).trim()) {
     clean.twitter = String(m.twitter).trim();
   }
+  if (m.customLinkName && String(m.customLinkName).trim()) {
+    clean.customLinkName = String(m.customLinkName).trim();
+  }
+  if (m.customLinkUrl && String(m.customLinkUrl).trim()) {
+    clean.customLinkUrl = String(m.customLinkUrl).trim();
+  }
   return clean as TeamMember;
 }
 

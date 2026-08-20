@@ -99,10 +99,11 @@ export default function WorkspaceAdminPage() {
   const [teamForm, setTeamForm] = useState<{
     id: string; name: string; role: string; bio: string;
     college: string; avatar: string; linkedin: string; twitter: string;
+    customLinkName: string; customLinkUrl: string;
     order: number; visible: boolean;
   }>({
     id: '', name: '', role: '', bio: '', college: '',
-    avatar: '', linkedin: '', twitter: '', order: 0, visible: true,
+    avatar: '', linkedin: '', twitter: '', customLinkName: '', customLinkUrl: '', order: 0, visible: true,
   });
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [teamSuccess, setTeamSuccess] = useState('');
@@ -397,7 +398,7 @@ export default function WorkspaceAdminPage() {
 
   // ── Team Member Handlers ──
   const resetTeamForm = () => {
-    setTeamForm({ id: '', name: '', role: '', bio: '', college: '', avatar: '', linkedin: '', twitter: '', order: teamMembers.length, visible: true });
+    setTeamForm({ id: '', name: '', role: '', bio: '', college: '', avatar: '', linkedin: '', twitter: '', customLinkName: '', customLinkUrl: '', order: teamMembers.length, visible: true });
     setEditingTeamId(null);
   };
 
@@ -407,6 +408,7 @@ export default function WorkspaceAdminPage() {
       id: m.id, name: m.name, role: m.role, bio: m.bio,
       college: m.college, avatar: m.avatar || '',
       linkedin: m.linkedin || '', twitter: m.twitter || '',
+      customLinkName: m.customLinkName || '', customLinkUrl: m.customLinkUrl || '',
       order: m.order, visible: m.visible,
     });
     setActiveTab('team');
@@ -435,6 +437,8 @@ export default function WorkspaceAdminPage() {
         avatar: teamForm.avatar.trim(),
         linkedin: teamForm.linkedin.trim(),
         twitter: teamForm.twitter.trim(),
+        customLinkName: teamForm.customLinkName.trim(),
+        customLinkUrl: teamForm.customLinkUrl.trim(),
         order: Number(teamForm.order) || 0,
         visible: teamForm.visible,
       };
@@ -1681,6 +1685,28 @@ export default function WorkspaceAdminPage() {
                         type="text" value={teamForm.twitter}
                         onChange={e => setTeamForm(f => ({ ...f, twitter: e.target.value }))}
                         placeholder="https://x.com/..."
+                        className={inputClass}
+                      />
+                    </div>
+
+                    {/* Custom Link Title */}
+                    <div>
+                      <label className={labelClass}>Custom Link Title / Name</label>
+                      <input
+                        type="text" value={teamForm.customLinkName}
+                        onChange={e => setTeamForm(f => ({ ...f, customLinkName: e.target.value }))}
+                        placeholder="e.g. Portfolio, GitHub, Website"
+                        className={inputClass}
+                      />
+                    </div>
+
+                    {/* Custom Link URL */}
+                    <div>
+                      <label className={labelClass}>Custom Link URL</label>
+                      <input
+                        type="text" value={teamForm.customLinkUrl}
+                        onChange={e => setTeamForm(f => ({ ...f, customLinkUrl: e.target.value }))}
+                        placeholder="https://..."
                         className={inputClass}
                       />
                     </div>

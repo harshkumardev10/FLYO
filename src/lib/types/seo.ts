@@ -75,6 +75,8 @@ export interface TeamMember {
   avatar: string;
   linkedin?: string;
   twitter?: string;
+  customLinkName?: string;
+  customLinkUrl?: string;
   visible: boolean;     // controls whether displayed on site
   order: number;        // display order
 }
