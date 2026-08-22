@@ -1,147 +1,112 @@
-'use client';
+// SERVER COMPONENT — no 'use client' here
+// Generates Open Graph / Twitter Card meta tags so sharing the URL
+// automatically shows the article image on WhatsApp, Telegram, Twitter, etc.
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Calendar, Clock, User, ArrowRight, BookOpen, Tag } from 'lucide-react';
+import { Metadata } from 'next';
 import { ARTICLES_DATA } from '@/lib/data/articles';
-import { getAllArticles, syncFromFirestore } from '@/lib/data/articlesStore';
-import { SERVICES_DATA } from '@/lib/data/services';
-import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import { ArticleItem } from '@/lib/types/seo';
-import { formatContentWithHyperlinks } from '@/lib/utils/formatContent';
+import ArticlePageClient from './ArticlePageClient';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://flyodigital.com';
+const FIREBASE_PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'flyo-1863c';
 
 interface ArticlePageProps {
-  params: {
-    slug: string;
+  params: { slug: string };
+}
+
+/**
+ * Fetch article: first check static data, then try Firestore REST API
+ */
+async function fetchArticle(slug: string): Promise<ArticleItem | null> {
+  // 1. Check static bundle first (instant, no network)
+  const staticArt = ARTICLES_DATA.find((a) => a.slug === slug);
+  if (staticArt) return staticArt;
+
+  // 2. Fallback: Firestore REST API (for dynamically-uploaded articles)
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/articles/${encodeURIComponent(slug)}`;
+    const res = await fetch(url, { next: { revalidate: 60 } });
+    if (!res.ok) return null;
+
+    const json = await res.json();
+    if (!json.fields) return null;
+
+    // Map Firestore field format to ArticleItem
+    const f = json.fields;
+    const get = (key: string) => f[key]?.stringValue ?? f[key]?.integerValue ?? '';
+
+    return {
+      slug: get('slug') || slug,
+      title: get('title'),
+      summary: get('summary'),
+      category: get('category') as ArticleItem['category'],
+      publishedAt: get('publishedAt'),
+      authorName: get('authorName'),
+      authorRole: get('authorRole'),
+      readingTimeMinutes: Number(f.readingTimeMinutes?.integerValue ?? 5),
+      heroImage: get('heroImage'),
+      contentHtml: get('contentHtml'),
+      relatedServiceSlug: get('relatedServiceSlug') || undefined,
+      status: (get('status') as ArticleItem['status']) || undefined,
+      submittedBy: get('submittedBy') || undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/* ── Open Graph / Twitter Card metadata ─────────────────────────────── */
+export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
+  const article = await fetchArticle(params.slug);
+
+  if (!article) {
+    return {
+      title: 'Article Not Found | FLYO',
+      description: 'This article could not be found.',
+    };
+  }
+
+  const pageUrl = `${SITE_URL}/articles/${article.slug}`;
+  const ogImage = article.heroImage || `${SITE_URL}/icon.png`;
+
+  return {
+    title: `${article.title} | FLYO`,
+    description: article.summary,
+    openGraph: {
+      type: 'article',
+      url: pageUrl,
+      title: `${article.title} | FLYO`,
+      description: article.summary,
+      siteName: 'FLYO',
+      publishedTime: article.publishedAt,
+      authors: [article.authorName],
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: article.title,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${article.title} | FLYO`,
+      description: article.summary,
+      images: [ogImage],
+      site: '@flyodigital',
+    },
+    alternates: {
+      canonical: pageUrl,
+    },
   };
 }
 
-export default function ArticleDetailPage({ params }: ArticlePageProps) {
-  const [article, setArticle] = useState<ArticleItem | null>(() => {
-    return ARTICLES_DATA.find((a) => a.slug === params.slug) || null;
-  });
-  const [imgError, setImgError] = useState(false);
+/* ── Page component (server) ─────────────────────────────────────────── */
+export default async function ArticleDetailPage({ params }: ArticlePageProps) {
+  // Pre-fetch article server-side so the client component has an initial value
+  // (avoids flash of "not found" before Firestore sync)
+  const initialArticle = await fetchArticle(params.slug);
 
-  useEffect(() => {
-    const load = () => {
-      const all = getAllArticles();
-      const found = all.find((a) => a.slug === params.slug);
-      if (found) setArticle(found);
-    };
-    load();
-    syncFromFirestore().then(load);
-  }, [params.slug]);
-
-  if (!article) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-4">
-        <h1 className="text-2xl font-bold text-slate-900">Article Not Found</h1>
-        <p className="text-xs text-slate-600">The requested article could not be located.</p>
-        <Link href="/articles" className="inline-block px-4 py-2 bg-indigo-600 text-white font-bold text-xs rounded-xl">
-          Back to Articles
-        </Link>
-      </div>
-    );
-  }
-
-  const relatedService = article.relatedServiceSlug
-    ? SERVICES_DATA.find((s) => s.slug === article.relatedServiceSlug)
-    : null;
-
-  const formattedHtml = formatContentWithHyperlinks(article.contentHtml);
-
-  return (
-    <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 pb-20">
-      <Breadcrumbs
-        items={[
-          { name: 'Articles', item: '/articles' },
-          { name: article.title, item: `/articles/${article.slug}` },
-        ]}
-      />
-
-      {/* Hero Image / Header Banner */}
-      {article.heroImage && !imgError ? (
-        <div className="relative w-full h-64 sm:h-80 md:h-96 rounded-3xl overflow-hidden -mt-2 mb-2 bg-slate-100 border border-slate-200">
-          <img
-            src={article.heroImage}
-            alt={article.title}
-            onError={() => setImgError(true)}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
-        </div>
-      ) : (
-        <div className="relative w-full h-48 sm:h-64 rounded-3xl overflow-hidden -mt-2 mb-2 bg-gradient-to-r from-indigo-900 via-slate-900 to-violet-900 p-8 flex items-end">
-          <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-xs font-bold uppercase tracking-wider border border-white/30">
-            {article.category}
-          </span>
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="space-y-4 border-b border-slate-200 pb-8">
-        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 font-medium">
-          <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold uppercase tracking-wider border border-indigo-100">
-            {article.category}
-          </span>
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5 text-slate-400" /> {article.publishedAt}
-          </span>
-          <span className="flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-slate-400" /> {article.readingTimeMinutes} min read
-          </span>
-        </div>
-
-        <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
-          {article.title}
-        </h1>
-
-        <div className="flex items-center gap-3 pt-2 text-xs text-slate-600">
-          <User className="w-4 h-4 text-indigo-600" />
-          <span>Written by <strong>{article.authorName}</strong> ({article.authorRole})</span>
-        </div>
-      </div>
-
-      {/* Article Content with Working Hypertext Links */}
-      <div
-        className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-3 prose-p:text-slate-700 prose-p:leading-relaxed prose-p:text-sm sm:prose-p:text-base prose-a:text-indigo-600 prose-a:underline font-normal"
-        dangerouslySetInnerHTML={{ __html: formattedHtml }}
-      />
-
-      {/* Related Service Link */}
-      {relatedService && (
-        <div className="p-6 rounded-2xl bg-indigo-50 border border-indigo-100 space-y-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">
-            Need Help Implementing This?
-          </span>
-          <h2 className="text-lg font-bold text-slate-900">{relatedService.title}</h2>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            {relatedService.shortDescription}
-          </p>
-          <Link
-            href={`/services/${relatedService.slug}`}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:underline pt-1"
-          >
-            <span>Learn about our {relatedService.title} service</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      )}
-
-      {/* CTA */}
-      <div className="p-8 rounded-3xl bg-slate-900 text-white text-center space-y-4 shadow-sm">
-        <h2 className="text-xl sm:text-2xl font-bold">Have questions about your local business online?</h2>
-        <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-          We're happy to discuss your digital presence and point you in the right direction.
-        </p>
-        <Link
-          href="/contact"
-          className="inline-flex items-center gap-1.5 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors"
-        >
-          <span>Let's Talk About Your Business</span>
-          <ArrowRight className="w-4 h-4" />
-        </Link>
-      </div>
-    </article>
-  );
+  return <ArticlePageClient slug={params.slug} initialArticle={initialArticle} />;
 }

@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Phone, Mail, MapPin, Send, CheckCircle2, AlertCircle, MessageSquare, Clock, Loader2 } from 'lucide-react';
+import { Phone, Mail, MapPin, Send, CheckCircle2, AlertCircle, MessageSquare, Clock } from 'lucide-react';
+import FlyoLoader from '@/components/ui/FlyoLoader';
 import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import { COMPANY_INFO } from '@/lib/data/company';
 
@@ -216,7 +217,7 @@ export default function ContactPage() {
               className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
             >
               {isSubmitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <FlyoLoader size="xs" />
               ) : (
                 <Send className="w-4 h-4" />
               )}

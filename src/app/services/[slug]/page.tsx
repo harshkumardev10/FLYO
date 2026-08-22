@@ -8,6 +8,8 @@ import { generateServiceSchema, generateFAQSchema } from '@/lib/seo/schemas';
 import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import { JsonLd } from '@/components/seo/JsonLd';
 
+import { COMPANY_INFO } from '@/lib/data/company';
+
 interface ServicePageProps {
   params: {
     slug: string;
@@ -25,8 +27,8 @@ export async function generateMetadata({ params }: ServicePageProps) {
   if (!service) return {};
 
   return generateServiceMetadata({
-    title: `${service.title} Services | Pulse Studio`,
-    description: service.shortDescription,
+    title: `${service.title} - Grow Your Business Online | FLYO`,
+    description: `${service.shortDescription} Partner with FLYO to scale and grow your local business with expert ${service.title.toLowerCase()} solutions.`,
     canonicalUrl: `/services/${service.slug}`,
   });
 }
@@ -35,7 +37,7 @@ export default function ServiceDetailPage({ params }: ServicePageProps) {
   const service = SERVICES_DATA.find((s) => s.slug === params.slug);
   if (!service) notFound();
 
-  const serviceUrl = `https://www.pulsedigitalstudio.com/services/${service.slug}`;
+  const serviceUrl = `${COMPANY_INFO.url}/services/${service.slug}`;
   const serviceSchema = generateServiceSchema(service, serviceUrl);
   const faqSchema = generateFAQSchema(service.faqs);
 

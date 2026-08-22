@@ -1,6 +1,6 @@
 // scripts/gen-favicon.mjs
 // Converts the Flyo kingfisher PNG to proper favicon sizes and overwrites
-// both public/favicon.ico (multi-size) and public/favicon.png (512px)
+// both public/ and src/app/ favicons (including Google Search 48x48 requirement)
 import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
@@ -8,43 +8,56 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(__dirname, '..', 'public', 'kingfisher-logo.jpg');
-const DEST_PNG_512 = path.join(__dirname, '..', 'public', 'favicon.png');
-const DEST_PNG_180 = path.join(__dirname, '..', 'public', 'apple-touch-icon.png');
-const DEST_PNG_32  = path.join(__dirname, '..', 'public', 'favicon-32x32.png');
-const DEST_PNG_16  = path.join(__dirname, '..', 'public', 'favicon-16x16.png');
 
-// ICO format: we'll write a minimal valid ICO with a 32x32 and 16x16 embedded PNG
-const DEST_ICO = path.join(__dirname, '..', 'public', 'favicon.ico');
-// Also place in app/ for Next.js metadata
-const DEST_APP_ICO = path.join(__dirname, '..', 'src', 'app', 'favicon.ico');
+// Target locations
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const APP_DIR = path.join(__dirname, '..', 'src', 'app');
+
+const SIZES = [
+  { name: 'favicon.png', size: 512 },
+  { name: 'favicon-192x192.png', size: 192 },
+  { name: 'apple-touch-icon.png', size: 180 },
+  { name: 'favicon-144x144.png', size: 144 },
+  { name: 'favicon-96x96.png', size: 96 },
+  { name: 'favicon-48x48.png', size: 48 }, // Critical for Google Search
+  { name: 'favicon-32x32.png', size: 32 },
+  { name: 'favicon-16x16.png', size: 16 },
+];
 
 async function main() {
-  console.log('Generating Flyo favicons from kingfisher logo...');
-
+  console.log('Generating FLYO favicons from kingfisher logo...');
   const base = sharp(SRC);
 
-  // Generate individual PNGs
-  await base.clone().resize(512, 512, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } }).png().toFile(DEST_PNG_512);
-  console.log('favicon.png (512x512) done');
+  // Generate PNG files in public and app directories
+  for (const item of SIZES) {
+    const pubPath = path.join(PUBLIC_DIR, item.name);
+    await base.clone().resize(item.size, item.size, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } }).png().toFile(pubPath);
+    console.log(`${item.name} (${item.size}x${item.size}) generated in public/`);
+  }
 
-  await base.clone().resize(180, 180, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } }).png().toFile(DEST_PNG_180);
-  console.log('apple-touch-icon.png (180x180) done');
+  // Also copy icon.png & apple-icon.png to app/
+  await base.clone().resize(512, 512, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } }).png().toFile(path.join(APP_DIR, 'icon.png'));
+  await base.clone().resize(180, 180, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } }).png().toFile(path.join(APP_DIR, 'apple-icon.png'));
 
-  await base.clone().resize(32, 32, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } }).png().toFile(DEST_PNG_32);
-  console.log('favicon-32x32.png (32x32) done');
-
-  await base.clone().resize(16, 16, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } }).png().toFile(DEST_PNG_16);
-  console.log('favicon-16x16.png (16x16) done');
-
-  // Build a minimal ICO file containing embedded PNGs at 32x32 and 16x16
+  // Build multi-resolution ICO file containing embedded PNGs at 48x48, 32x32, 16x16
+  const png48 = await base.clone().resize(48, 48, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } }).png().toBuffer();
   const png32 = await base.clone().resize(32, 32, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } }).png().toBuffer();
   const png16 = await base.clone().resize(16, 16, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } }).png().toBuffer();
-  const ico = buildIco([png32, png16], [32, 16]);
-  fs.writeFileSync(DEST_ICO, ico);
-  fs.writeFileSync(DEST_APP_ICO, ico);
-  console.log('favicon.ico (32x32 + 16x16 embedded PNG) done');
-  console.log('src/app/favicon.ico (Next.js app dir) done');
-  console.log('All favicons generated successfully!');
+  
+  const ico = buildIco([png48, png32, png16], [48, 32, 16]);
+  
+  fs.writeFileSync(path.join(PUBLIC_DIR, 'favicon.ico'), ico);
+  fs.writeFileSync(path.join(APP_DIR, 'favicon.ico'), ico);
+  console.log('favicon.ico (48x48 + 32x32 + 16x16) generated in public/ and src/app/');
+
+  // Copy icon.svg to src/app/ as icon.svg
+  const pubSvg = path.join(PUBLIC_DIR, 'icon.svg');
+  if (fs.existsSync(pubSvg)) {
+    fs.copyFileSync(pubSvg, path.join(APP_DIR, 'icon.svg'));
+    console.log('icon.svg copied to src/app/icon.svg');
+  }
+
+  console.log('All FLYO favicons generated successfully!');
 }
 
 /**
@@ -91,3 +104,4 @@ function buildIco(pngBuffers, sizes) {
 }
 
 main().catch(err => { console.error('Error:', err); process.exit(1); });
+

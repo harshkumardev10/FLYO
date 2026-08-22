@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import FlyoLoader from '@/components/ui/FlyoLoader';
 import { 
   Lock, 
   ShieldAlert, 
@@ -14,6 +15,7 @@ import {
   Code2,
   LogOut,
   ArrowRight,
+  ArrowLeft,
   Eye,
   EyeOff,
   Trash2,
@@ -39,6 +41,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { uploadImageToCloudinary } from '@/lib/uploadImage';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 import { 
   getAllowedAdminEmails, 
   addAllowedAdminEmail, 
@@ -63,21 +66,34 @@ import {
 import { saveProject } from '@/lib/data/workStore';
 import { formatContentWithHyperlinks } from '@/lib/utils/formatContent';
 import { ArticleItem, TeamMember, WorkProject } from '@/lib/types/seo';
-import { AuditTool } from '@/components/ui/AuditTool';
+import { verifyUserPassword, changeUserPassword } from '@/lib/data/authStore';
 
 const AUTH_STORAGE_KEY = 'flyo_authenticated_partner_email';
 
 export default function WorkspaceAdminPage() {
   const [emailInput, setEmailInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [authenticatedEmail, setAuthenticatedEmail] = useState<string | null>(null);
   const [authError, setAuthError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // ── Change Password State ──
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [currentPassInput, setCurrentPassInput] = useState('');
+  const [newPassInput, setNewPassInput] = useState('');
+  const [confirmPassInput, setConfirmPassInput] = useState('');
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState('');
+  const [passwordChangeError, setPasswordChangeError] = useState('');
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
   
   const [allowedEmails, setAllowedEmails] = useState<string[]>([]);
   const [newEmailToAdd, setNewEmailToAdd] = useState('');
   const [emailSuccessMsg, setEmailSuccessMsg] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'articles' | 'projects' | 'manage' | 'emails' | 'audit' | 'team'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'projects' | 'manage' | 'emails' | 'team'>('articles');
 
   // Real Project Form State
   const [projectTitle, setProjectTitle] = useState('');
@@ -163,36 +179,90 @@ export default function WorkspaceAdminPage() {
     });
   }, []);
 
-  // Handle Login Verification (Syncs fresh data from Firebase first)
+  // Handle Login Verification (Verifies Email & Password)
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
     const cleanEmail = emailInput.trim().toLowerCase();
+    const cleanPass = passwordInput.trim();
     
     if (!cleanEmail) {
       setAuthError('Please enter a valid email address.');
       return;
     }
+    if (!cleanPass) {
+      setAuthError('Please enter your workspace password. (Default is "user")');
+      return;
+    }
 
     setIsLoggingIn(true);
+
     try {
-      await syncFromFirestore();
+      const res = await verifyUserPassword(cleanEmail, cleanPass);
+      
+      if (res.valid) {
+        // Single continuous smooth expansion & fade-out (750ms)
+        await new Promise((resolve) => setTimeout(resolve, 750));
+
+        setAuthenticatedEmail(cleanEmail);
+        setAllowedEmails(getAllowedAdminEmails());
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(AUTH_STORAGE_KEY, cleanEmail);
+        }
+        setAuthError('');
+        setPasswordInput('');
+      } else {
+        setAuthError(res.error || 'Access Denied: Invalid email or password.');
+      }
     } catch (err) {
-      console.error('Login sync error:', err);
+      console.error('Login error:', err);
+      setAuthError('Login failed. Please check your connection and try again.');
     } finally {
       setIsLoggingIn(false);
     }
+  };
 
-    const currentAllowed = getAllowedAdminEmails();
-    if (currentAllowed.includes(cleanEmail)) {
-      setAuthenticatedEmail(cleanEmail);
-      setAllowedEmails(currentAllowed);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(AUTH_STORAGE_KEY, cleanEmail);
+  // Handle Change Password
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordChangeError('');
+    setPasswordChangeSuccess('');
+
+    if (!authenticatedEmail) return;
+
+    if (!currentPassInput) {
+      setPasswordChangeError('Please enter your current password.');
+      return;
+    }
+    if (!newPassInput || newPassInput.length < 3) {
+      setPasswordChangeError('New password must be at least 3 characters long.');
+      return;
+    }
+    if (newPassInput !== confirmPassInput) {
+      setPasswordChangeError('New password and confirm password do not match.');
+      return;
+    }
+
+    setIsSavingPassword(true);
+    try {
+      const res = await changeUserPassword(authenticatedEmail, currentPassInput, newPassInput);
+      if (res.success) {
+        setPasswordChangeSuccess('✅ Password updated successfully! Use your new password on next login.');
+        setCurrentPassInput('');
+        setNewPassInput('');
+        setConfirmPassInput('');
+        setTimeout(() => {
+          setPasswordChangeSuccess('');
+          setIsPasswordModalOpen(false);
+        }, 2200);
+      } else {
+        setPasswordChangeError(res.error || 'Failed to update password.');
       }
-      setAuthError('');
-    } else {
-      setAuthError(`Access Denied: "${cleanEmail}" is not authorized for FLYO partner access.`);
+    } catch (err) {
+      console.error('Change password error:', err);
+      setPasswordChangeError('An unexpected error occurred while changing password.');
+    } finally {
+      setIsSavingPassword(false);
     }
   };
 
@@ -236,7 +306,9 @@ export default function WorkspaceAdminPage() {
   // Handle Article Publish / Update
   const handlePublishArticle = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!articleTitle || !summary || !contentHtml) return;
+    // Strip HTML tags to get actual text length for validation
+    const contentText = contentHtml.replace(/<[^>]*>/g, '').trim();
+    if (!articleTitle || !summary || !contentText) return;
 
     const slug = editingSlug || articleTitle
       .toLowerCase()
@@ -246,10 +318,8 @@ export default function WorkspaceAdminPage() {
     const isMainAdmin = authenticatedEmail?.toLowerCase() === MAIN_ADMIN_EMAIL.toLowerCase();
     const existingArt = publishedArticles.find(a => a.slug === slug);
     
-    // Status logic: Main admin posts directly as 'approved'. Partners post as 'pending' unless editing existing approved article.
-    const articleStatus = isMainAdmin
-      ? 'approved'
-      : (existingArt?.status || 'pending');
+    // Status logic: Primary admin posts directly as 'approved'. All other partner posts/edits come as 'pending' for review.
+    const articleStatus: 'approved' | 'pending' = isMainAdmin ? 'approved' : 'pending';
 
     const newArticle: ArticleItem = {
       slug: slug || `article-${Date.now()}`,
@@ -263,10 +333,17 @@ export default function WorkspaceAdminPage() {
       authorRole,
       readingTimeMinutes: Number(readingTime) || 5,
       heroImage,
-      contentHtml: contentHtml.startsWith('<') ? contentHtml : formatContentWithHyperlinks(contentHtml),
+      // Rich editor already outputs HTML — only use formatContentWithHyperlinks for legacy plain-text fallback
+      contentHtml: (() => {
+        const trimmed = contentHtml.trim();
+        // If it starts with an HTML tag it came from the rich editor — keep it as-is
+        if (trimmed.startsWith('<')) return trimmed;
+        // Legacy plain text → auto-format
+        return formatContentWithHyperlinks(trimmed);
+      })(),
       relatedServiceSlug,
       status: articleStatus,
-      submittedBy: authenticatedEmail || 'Partner',
+      submittedBy: existingArt?.submittedBy || authenticatedEmail || 'Partner',
     };
 
     setPublishError('');
@@ -353,11 +430,16 @@ export default function WorkspaceAdminPage() {
     }
   };
 
-  // Delete an article (Primary Admin only)
+  // Delete an article — Main Admin can delete any; partners can only delete their own
   const handleDeleteArticle = async (slug: string) => {
-    if (authenticatedEmail?.toLowerCase() !== MAIN_ADMIN_EMAIL.toLowerCase()) {
-      alert('Only Primary Admin (harshkumarrr143@gmail.com) can delete articles.');
-      return;
+    const isMainAdmin = authenticatedEmail?.toLowerCase() === MAIN_ADMIN_EMAIL.toLowerCase();
+    if (!isMainAdmin) {
+      // Find the article and verify ownership
+      const article = publishedArticles.find(a => a.slug === slug);
+      if (!article || article.submittedBy?.toLowerCase() !== authenticatedEmail?.toLowerCase()) {
+        alert('You can only delete articles that you submitted.');
+        return;
+      }
     }
     if (!confirm('Delete this article? This cannot be undone.')) return;
     await removeArticle(slug);
@@ -484,104 +566,351 @@ export default function WorkspaceAdminPage() {
   const labelClass = "block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide";
 
   /* ═══════════════════════════════════════════
-     LOGIN SCREEN
+     CREATIVE LOGIN SCREEN — Blue, Orange & White FLYO Palette
   ═══════════════════════════════════════════ */
   if (!authenticatedEmail) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-950 p-4">
-        {/* Animated background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-indigo-600/10 blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full bg-violet-600/10 blur-3xl" />
-          <div className="absolute inset-0 hero-grid opacity-20" />
-        </div>
+      <div className="fixed inset-0 z-[100] h-[100dvh] w-full overflow-hidden bg-[#060c1d] flex flex-col lg:flex-row">
+        
+        {/* Custom CSS Animation Keyframes */}
+        <style jsx global>{`
+          @keyframes flyoBirdFloat {
+            0%, 100% {
+              transform: translateY(0px) rotate(0deg);
+            }
+            50% {
+              transform: translateY(-14px) rotate(1.5deg);
+            }
+          }
+          @keyframes flyoPulseRing {
+            0%, 100% {
+              transform: scale(0.95);
+              opacity: 0.35;
+            }
+            50% {
+              transform: scale(1.15);
+              opacity: 0.85;
+            }
+          }
+          @keyframes flyoContinuousFadeOut {
+            0% {
+              transform: scale(1);
+              opacity: 1;
+            }
+            50% {
+              transform: scale(1.6);
+              opacity: 0.95;
+            }
+            85% {
+              transform: scale(2.8);
+              opacity: 0.4;
+            }
+            100% {
+              transform: scale(3.8);
+              opacity: 0;
+            }
+          }
+          .animate-flyo-bird {
+            animation: flyoBirdFloat 4.5s ease-in-out infinite;
+          }
+          .animate-flyo-ring {
+            animation: flyoPulseRing 6s ease-in-out infinite;
+          }
+          .animate-flyo-continuous-zoom-fade {
+            animation: flyoContinuousFadeOut 0.75s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          }
+        `}</style>
 
-        <div className="relative w-full max-w-md">
-          {/* Logo */}
-          <div className="text-center mb-8 space-y-2">
-            <div className="inline-flex items-center gap-2.5 group">
-              <div className="w-11 h-11 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/30">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
-                  <path d="M16 7c-1.5 0-3 1.5-3 3 0 1.5 1.5 3 3 3s3-1.5 3-3-1.5-3-3-3z"/>
-                  <path d="M2 19c2.5-1 5.5-3.5 8.5-8 3 4.5 7.5 6.5 11.5 5.5-3 2.5-6 3.5-10 3.5-4 0-7-1-10-1z"/>
-                </svg>
+        {/* ── CINEMATIC CONTINUOUS CENTER EXPANSION & FADE-OUT ON LOGIN ── */}
+        {isLoggingIn && (
+          <div className="fixed inset-0 z-[200] bg-[#060c1d] flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden animate-fadeIn transition-opacity duration-300">
+            {/* Massive Ambient Background Light Filling the Entire Viewport */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full bg-gradient-to-tr from-blue-600/40 via-white/20 to-orange-500/40 blur-[180px] animate-pulse" />
+              <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-600/25 via-[#060c1d]/80 to-[#060c1d]" />
+            </div>
+
+            {/* Single Continuous Smooth Logo Expansion & Fade-Out */}
+            <div className="relative z-10 flex flex-col items-center justify-center space-y-6 animate-flyo-continuous-zoom-fade pointer-events-none">
+              {/* Luminous Pulsing Shockwave Rings */}
+              <div className="relative flex items-center justify-center">
+                <div className="absolute w-[380px] h-[380px] rounded-full bg-gradient-to-tr from-blue-500/50 via-white/30 to-orange-500/50 blur-3xl animate-flyo-ring" />
+                <div className="absolute w-[300px] h-[300px] rounded-full border-2 border-blue-400/50 animate-spin" style={{ animationDuration: '6s' }} />
+                <div className="absolute w-[250px] h-[250px] rounded-full border-2 border-dashed border-orange-400/60 animate-spin" style={{ animationDuration: '4s', animationDirection: 'reverse' }} />
+
+                {/* Center Bird Card in Pure White Frame with Vibrant Gradient */}
+                <div className="w-48 h-48 md:w-56 md:h-56 rounded-3xl p-1.5 bg-gradient-to-b from-blue-500 via-white to-orange-500 shadow-2xl shadow-blue-950/90">
+                  <div className="w-full h-full rounded-[22px] bg-white flex items-center justify-center p-4 shadow-inner">
+                    <img
+                      src="/kingfisher-logo.jpg"
+                      alt="FLYO Kingfisher"
+                      className="w-full h-full object-contain filter drop-shadow-[0_15px_30px_rgba(29,78,216,0.45)]"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <span className="font-extrabold text-2xl text-white tracking-widest uppercase">FLYO</span>
-                <p className="text-[10px] text-indigo-300 font-semibold tracking-wide -mt-0.5">Partner Portal</p>
+
+              {/* Status Indicator */}
+              <div className="space-y-2.5">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0c183a]/90 border border-blue-400/50 shadow-lg">
+                  <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                  <span className="text-xs font-bold text-white uppercase tracking-widest">
+                    Unlocking Workspace...
+                  </span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-white to-orange-400">FLYO</span>
+                </h3>
               </div>
             </div>
           </div>
+        )}
 
-          {/* Login Card */}
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 space-y-6 shadow-2xl">
-            <div className="text-center space-y-2">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center mx-auto">
-                <Lock className="w-7 h-7 text-indigo-400" />
+        {/* ── LEFT SCREEN: Blue, Orange & White Branding Visual ── */}
+        <div className="hidden lg:flex lg:flex-1 relative overflow-hidden bg-gradient-to-br from-[#08122c] via-[#0b193d] to-[#050b1a] flex-col justify-between p-12 select-none border-r border-blue-900/40">
+          
+          {/* Ambient Blue & Orange Light Orbs */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-24 -left-24 w-[550px] h-[550px] rounded-full bg-blue-600/20 blur-[130px] animate-flyo-ring" />
+            <div className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-blue-500/15 blur-[120px] animate-pulse" />
+            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-orange-500/15 blur-[130px] animate-flyo-ring" style={{ animationDelay: '2s' }} />
+            {/* Fine White Grid */}
+            <div
+              className="absolute inset-0 opacity-[0.06]"
+              style={{
+                backgroundImage: 'linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px)',
+                backgroundSize: '48px 48px',
+              }}
+            />
+          </div>
+
+          {/* Top Branding Pill */}
+          <div className="relative z-10 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#0c183a]/90 border border-blue-500/30 backdrop-blur-xl shadow-lg shadow-blue-950/50">
+              <div className="w-7 h-7 rounded-xl overflow-hidden bg-white p-0.5 border border-blue-400 shadow-sm flex items-center justify-center">
+                <img src="/kingfisher-logo.jpg" alt="FLYO" className="w-full h-full object-cover" />
               </div>
-              <h1 className="text-xl font-bold text-white">Restricted Access</h1>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                Enter your authorized partner email to access the FLYO admin workspace.
-              </p>
+              <span className="text-white font-black text-sm tracking-wider uppercase">FLYO</span>
+              <span className="text-[10px] text-orange-400 font-extrabold px-1.5 py-0.5 rounded border border-orange-500/50 bg-orange-950/60">STUDIO</span>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label htmlFor="adminEmail" className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-widest">
-                  Partner Email
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    id="adminEmail"
-                    type="email"
-                    required
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder="admin@flyodigital.com"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-emerald-400 text-[11px] font-bold tracking-wide">Workspace Ready</span>
+            </div>
+          </div>
+
+          {/* Central Hero: Animated Kingfisher with Blue/Orange Rings */}
+          <div className="relative z-10 flex flex-col items-center justify-center my-auto text-center px-4">
+            
+            {/* Kingfisher Container with Floating Animation */}
+            <div className="relative mb-6 flex items-center justify-center">
+              {/* Outer Luminous Blue & Orange Rings */}
+              <div className="absolute w-64 h-64 rounded-full bg-gradient-to-tr from-blue-500/30 via-white/10 to-orange-500/30 blur-2xl animate-flyo-ring" />
+              <div className="absolute w-52 h-52 rounded-full border border-blue-400/30 animate-spin" style={{ animationDuration: '30s' }} />
+              <div className="absolute w-44 h-44 rounded-full border border-dashed border-orange-400/35 animate-spin" style={{ animationDuration: '20s', animationDirection: 'reverse' }} />
+
+              {/* Floating Bird Artwork Card in Pure White Frame with Blue-Orange Border */}
+              <div className="animate-flyo-bird relative z-10 w-44 h-44 rounded-3xl p-1 bg-gradient-to-b from-blue-500 via-white to-orange-500 shadow-2xl shadow-blue-950/70 backdrop-blur-md group">
+                <div className="w-full h-full rounded-[22px] overflow-hidden bg-white flex items-center justify-center p-3 relative shadow-inner">
+                  <img
+                    src="/kingfisher-logo.jpg"
+                    alt="FLYO Kingfisher"
+                    className="w-full h-full object-contain filter drop-shadow-[0_10px_20px_rgba(29,78,216,0.35)] transform transition-transform duration-500 group-hover:scale-105"
                   />
                 </div>
               </div>
+            </div>
 
-              {authError && (
-                <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{authError}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={isLoggingIn}
-                className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30"
-              >
-                {isLoggingIn ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Verifying...</span>
-                  </>
-                ) : (
-                  <>
-                    <KeyRound className="w-4 h-4" />
-                    <span>Unlock Partner Workspace</span>
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="pt-2 border-t border-white/10 text-center space-y-1">
-              <p className="text-[11px] text-slate-500">
-                Access is restricted to authorized FLYO team members and partners.
+            {/* Headline & Description */}
+            <div className="space-y-3 max-w-lg">
+              <h1 className="text-4xl xl:text-5xl font-black text-white tracking-tight leading-[1.15]">
+                Grow your business with{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-white to-orange-400">
+                  FLYO
+                </span>.
+              </h1>
+              <p className="text-sm text-blue-100/80 leading-relaxed max-w-md mx-auto">
+                Next-generation digital craft powering high-converting websites, 10x Google SEO rankings & modern brand authority.
               </p>
+            </div>
+
+            {/* Blue, Orange & White Feature Tags */}
+            <div className="flex flex-wrap items-center justify-center gap-2.5 mt-7">
+              {[
+                { icon: '🚀', text: 'Lightning Fast Sites', color: 'border-blue-400/40 text-blue-200 bg-blue-950/60' },
+                { icon: '📈', text: 'Top Google SEO', color: 'border-orange-400/40 text-orange-200 bg-orange-950/60' },
+                { icon: '✍️', text: 'Live Article Portal', color: 'border-white/30 text-white bg-white/10' },
+              ].map((pill) => (
+                <div
+                  key={pill.text}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold backdrop-blur-md shadow-sm ${pill.color}`}
+                >
+                  <span className="text-sm">{pill.icon}</span>
+                  <span>{pill.text}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          <p className="text-center text-xs text-slate-600 mt-6">
-            <Link href="/" className="hover:text-slate-400 transition-colors flex items-center justify-center gap-1">
-              ← Back to FLYO website
-            </Link>
-          </p>
+          {/* Bottom Micro Footer */}
+          <div className="relative z-10 flex items-center justify-between text-xs text-blue-200/60 pt-4 border-t border-blue-900/40">
+            <span className="tracking-wide font-medium">© {new Date().getFullYear()} FLYO Digital Growth Studio</span>
+            <span className="text-orange-400 font-mono text-[11px]">v2.4 Partner Build</span>
+          </div>
+        </div>
+
+        {/* ── RIGHT SCREEN: Blue, Orange & White Login Box ── */}
+        <div className="flex-1 lg:max-w-[500px] xl:max-w-[540px] flex flex-col justify-between p-6 sm:p-10 bg-[#070e24] relative overflow-hidden">
+          
+          {/* Subtle Ambient Blue & Orange Light */}
+          <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/15 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-orange-500/15 rounded-full blur-[100px] pointer-events-none" />
+
+          {/* Top Bar for Mobile Branding */}
+          <div className="lg:hidden flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#0c183a] border border-blue-500/30 shadow-md">
+              <div className="w-7 h-7 rounded-xl overflow-hidden bg-white p-0.5 border border-blue-400 shadow-sm flex items-center justify-center">
+                <img src="/kingfisher-logo.jpg" alt="FLYO" className="w-full h-full object-cover" />
+              </div>
+              <span className="text-white font-black text-sm tracking-wider uppercase">FLYO</span>
+              <span className="text-[10px] text-orange-400 font-extrabold px-1.5 py-0.5 rounded border border-orange-500/50 bg-orange-950/60">STUDIO</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-emerald-400 text-[10px] font-bold">Admin Portal</span>
+            </div>
+          </div>
+
+          <div className="hidden lg:block" />
+
+          {/* ── CREATIVE LOGIN CARD BOX ── */}
+          <div className="my-auto w-full max-w-[420px] mx-auto">
+            <div className="relative rounded-3xl p-[1px] bg-gradient-to-b from-blue-500/50 via-white/20 to-orange-500/50 shadow-2xl shadow-blue-950/80">
+              
+              {/* Card Interior */}
+              <div className="bg-[#0b1636]/95 backdrop-blur-2xl rounded-[23px] p-7 sm:p-8 space-y-6 border border-blue-400/20">
+                
+                {/* Card Header with Exact Amber/Orange Lock Pill Badge */}
+                <div className="space-y-1.5 text-center sm:text-left">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#fff7ed] border border-[#fed7aa] text-[#c2410c] shadow-sm mb-2">
+                    <Lock className="w-3.5 h-3.5 text-[#ea580c] stroke-[2.2]" />
+                    <span className="text-xs font-semibold tracking-tight">Partner Workspace</span>
+                  </div>
+                  <h2 className="text-2xl font-black text-white tracking-tight">Sign In</h2>
+                  <p className="text-xs text-blue-200/70">Enter your authorized partner credentials</p>
+                </div>
+
+                {/* Form */}
+                <form onSubmit={handleLogin} className="space-y-4">
+                  
+                  {/* Email Field */}
+                  <div className="space-y-1.5">
+                    <label htmlFor="adminEmail" className="block text-[11px] font-bold text-blue-200 uppercase tracking-wider">
+                      Partner Email
+                    </label>
+                    <div className="relative group">
+                      <Mail className="w-4 h-4 text-blue-300/60 absolute left-3.5 top-1/2 -translate-y-1/2 group-focus-within:text-orange-400 transition-colors pointer-events-none" />
+                      <input
+                        id="adminEmail"
+                        type="email"
+                        required
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        placeholder="admin@flyodigital.com"
+                        className="w-full bg-[#060e22] border border-blue-900/60 focus:border-orange-400 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-blue-300/30 focus:outline-none focus:ring-2 focus:ring-orange-400/20 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password Field */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="adminPassword" className="block text-[11px] font-bold text-blue-200 uppercase tracking-wider">
+                        Password
+                      </label>
+                      <span className="text-[10px] text-orange-400 font-semibold flex items-center gap-1">
+                        Default: <code className="bg-orange-950/80 border border-orange-500/40 text-orange-300 px-1.5 py-0.5 rounded font-mono text-[10px]">user</code>
+                      </span>
+                    </div>
+                    <div className="relative group">
+                      <Lock className="w-4 h-4 text-blue-300/60 absolute left-3.5 top-1/2 -translate-y-1/2 group-focus-within:text-orange-400 transition-colors pointer-events-none" />
+                      <input
+                        id="adminPassword"
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={passwordInput}
+                        onChange={(e) => setPasswordInput(e.target.value)}
+                        placeholder="Enter password"
+                        className="w-full bg-[#060e22] border border-blue-900/60 focus:border-orange-400 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder:text-blue-300/30 focus:outline-none focus:ring-2 focus:ring-orange-400/20 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-blue-300/60 hover:text-white transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Error Notification */}
+                  {authError && (
+                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
+                      <span>{authError}</span>
+                    </div>
+                  )}
+
+                  {/* Submit Button in Radiant Blue-to-Orange Gradient */}
+                  <button
+                    type="submit"
+                    disabled={isLoggingIn}
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-orange-500 hover:from-blue-500 hover:to-orange-400 disabled:opacity-60 disabled:cursor-not-allowed text-white font-extrabold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 active:scale-[0.98]"
+                  >
+                    {isLoggingIn ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Verifying...</span>
+                      </>
+                    ) : (
+                      <>
+                        <KeyRound className="w-4 h-4" />
+                        <span>Unlock Workspace</span>
+                        <ArrowRight className="w-4 h-4 ml-1" />
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                {/* Divider & Back Link */}
+                <div className="pt-2 border-t border-blue-900/50 text-center space-y-3">
+                  <p className="text-[11px] text-blue-200/60">
+                    Restricted to authorized FLYO partners.
+                  </p>
+                  <Link
+                    href="/"
+                    className="inline-flex items-center gap-1.5 text-xs text-white/80 hover:text-orange-400 font-semibold transition-colors"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Back to FLYO Website</span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Security Pill */}
+            <div className="flex items-center justify-center gap-2 mt-4">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-[10px] text-blue-200/60 font-medium uppercase tracking-widest">
+                256-Bit Encrypted Session
+              </span>
+            </div>
+          </div>
+
+          <div className="text-center text-[11px] text-blue-200/40 lg:block hidden">
+            <span>FLYO Digital Partner System</span>
+          </div>
         </div>
       </div>
     );
@@ -590,12 +919,15 @@ export default function WorkspaceAdminPage() {
   /* ═══════════════════════════════════════════
      ADMIN DASHBOARD
   ═══════════════════════════════════════════ */
+  const displayedArticles = isCurrentPrimaryAdmin
+    ? publishedArticles
+    : publishedArticles.filter(a => a.submittedBy?.toLowerCase() === authenticatedEmail?.toLowerCase());
+
   const tabs = [
     { id: 'articles', label: 'Write Article', icon: <PenTool className="w-4 h-4" />, count: null, adminOnly: false },
     { id: 'projects', label: 'Add Real Project', icon: <Upload className="w-4 h-4" />, count: null, adminOnly: false },
-    { id: 'manage', label: 'Manage Articles', icon: <BookOpen className="w-4 h-4" />, count: publishedArticles.length, adminOnly: false },
-    { id: 'emails', label: 'Partner Access', icon: <Users className="w-4 h-4" />, count: allowedEmails.length, adminOnly: false },
-    { id: 'audit', label: 'SEO Audit', icon: <BarChart2 className="w-4 h-4" />, count: null, adminOnly: false },
+    { id: 'manage', label: isCurrentPrimaryAdmin ? 'Manage Articles' : 'My Articles', icon: <BookOpen className="w-4 h-4" />, count: displayedArticles.length, adminOnly: false },
+    { id: 'emails', label: 'Partner Access', icon: <Users className="w-4 h-4" />, count: allowedEmails.length, adminOnly: true },
     { id: 'team', label: 'Team Members', icon: <Users className="w-4 h-4" />, count: teamMembers.length, adminOnly: true },
   ];
 
@@ -622,12 +954,26 @@ export default function WorkspaceAdminPage() {
               <span className="text-slate-400 text-sm font-medium">Admin Portal</span>
             </div>
 
-            {/* Right: User info & logout */}
-            <div className="flex items-center gap-3">
+            {/* Right: User info & actions */}
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-emerald-300 text-xs font-semibold truncate max-w-[200px]">{authenticatedEmail}</span>
               </div>
+
+              <button
+                onClick={() => {
+                  setPasswordChangeError('');
+                  setPasswordChangeSuccess('');
+                  setIsPasswordModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/30 text-indigo-300 hover:text-white text-xs font-semibold transition-all"
+                title="Change your workspace password"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Change Password</span>
+                <span className="sm:hidden">Password</span>
+              </button>
               
               <button
                 onClick={handleLogout}
@@ -874,26 +1220,16 @@ export default function WorkspaceAdminPage() {
                       <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Article Content</h2>
                       
                       <div>
-                        <label htmlFor="contentHtml" className={labelClass}>
-                          Article Body (Normal Text Box) *
-                        </label>
-                        <div className="rounded-xl border border-slate-200 overflow-hidden">
-                          <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600">
-                            <span>Normal Text & Link Mode</span>
-                            <span className="text-[10px] text-indigo-600 font-semibold">Links (https://...) work automatically</span>
-                          </div>
-                          <textarea
-                            id="contentHtml"
-                            rows={10}
-                            required
-                            value={contentHtml}
-                            onChange={(e) => setContentHtml(e.target.value)}
-                            placeholder="Write your article body text naturally...\n\nPaste any website link (e.g. https://example.com) or [link text](url) and it will automatically be converted into a working hyperlink!"
-                            className="w-full px-4 py-3 text-sm text-slate-900 bg-white focus:outline-none focus:ring-0 resize-none leading-relaxed"
-                          />
-                        </div>
+                        <label className={labelClass}>Article Body *</label>
+                        <RichTextEditor
+                          id="contentHtml"
+                          value={contentHtml}
+                          onChange={setContentHtml}
+                          placeholder="Write your article content here. Use the toolbar above to add headings, bold text, lists, links, and more..."
+                          minHeight={320}
+                        />
                         <p className="mt-1.5 text-[11px] text-slate-500">
-                          ✨ Type naturally in plain text. Any website links you include will automatically turn into active clickable hyperlinks when published!
+                          ✨ Use the toolbar to format your article — headings, bold, lists, links & more. Content is saved exactly as you see it.
                         </p>
                       </div>
                     </div>
@@ -1253,24 +1589,37 @@ export default function WorkspaceAdminPage() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h1 className="text-2xl font-extrabold text-slate-900">Manage Articles</h1>
+                    <h1 className="text-2xl font-extrabold text-slate-900">
+                      {isCurrentPrimaryAdmin ? 'Manage All Articles' : 'My Submitted Articles'}
+                    </h1>
                     <p className="text-sm text-slate-500 mt-0.5">
-                      {publishedArticles.length} article{publishedArticles.length !== 1 ? 's' : ''} total ({publishedArticles.filter(a => a.status === 'pending').length} pending approval)
+                      {isCurrentPrimaryAdmin
+                        ? `${publishedArticles.length} article${publishedArticles.length !== 1 ? 's' : ''} total (${publishedArticles.filter(a => a.status === 'pending').length} pending approval)`
+                        : `${displayedArticles.length} article${displayedArticles.length !== 1 ? 's' : ''} submitted by you (${displayedArticles.filter(a => a.status === 'pending').length} awaiting Primary Admin approval)`}
                     </p>
                   </div>
-                  {authenticatedEmail?.toLowerCase() === MAIN_ADMIN_EMAIL.toLowerCase() && (
+                  {isCurrentPrimaryAdmin ? (
                     <span className="px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-xs font-bold flex items-center gap-1.5">
                       <ShieldCheck className="w-4 h-4 text-amber-600" />
                       Super Admin (Approval Rights)
                     </span>
+                  ) : (
+                    <span className="px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold flex items-center gap-1.5">
+                      <FileText className="w-4 h-4 text-indigo-600" />
+                      Partner Submissions
+                    </span>
                   )}
                 </div>
 
-                {publishedArticles.length === 0 ? (
+                {displayedArticles.length === 0 ? (
                   <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center space-y-3">
                     <FileText className="w-12 h-12 text-slate-300 mx-auto" />
-                    <h3 className="text-base font-bold text-slate-700">No articles yet</h3>
-                    <p className="text-sm text-slate-500">Start by writing your first article above.</p>
+                    <h3 className="text-base font-bold text-slate-700">
+                      {isCurrentPrimaryAdmin ? 'No articles yet' : 'No articles submitted yet'}
+                    </h3>
+                    <p className="text-sm text-slate-500">
+                      {isCurrentPrimaryAdmin ? 'Start by writing your first article above.' : 'Write and submit your first article. It will be sent to the Primary Admin for approval.'}
+                    </p>
                     <button
                       onClick={() => setActiveTab('articles')}
                       className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs mt-2"
@@ -1281,7 +1630,7 @@ export default function WorkspaceAdminPage() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {publishedArticles.map((article, idx) => {
+                    {displayedArticles.map((article, idx) => {
                       const isPending = article.status === 'pending';
                       const isMainAdmin = authenticatedEmail?.toLowerCase() === MAIN_ADMIN_EMAIL.toLowerCase();
 
@@ -1364,21 +1713,23 @@ export default function WorkspaceAdminPage() {
                               <Eye className="w-4 h-4" />
                             </Link>
 
-                            {/* Edit button (Everyone) */}
-                            <button
-                              onClick={() => handleEditArticle(article)}
-                              className="p-2 rounded-lg bg-slate-100 hover:bg-amber-100 text-slate-400 hover:text-amber-600 transition-colors"
-                              title="Edit article"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
+                            {/* Edit button — own articles or main admin */}
+                            {(isMainAdmin || article.submittedBy?.toLowerCase() === authenticatedEmail?.toLowerCase()) && (
+                              <button
+                                onClick={() => handleEditArticle(article)}
+                                className="p-2 rounded-lg bg-slate-100 hover:bg-amber-100 text-slate-400 hover:text-amber-600 transition-colors"
+                                title="Edit article"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                            )}
 
-                            {/* Delete button (Primary Admin ONLY) */}
-                            {isMainAdmin && (
+                            {/* Delete button — own articles or main admin */}
+                            {(isMainAdmin || article.submittedBy?.toLowerCase() === authenticatedEmail?.toLowerCase()) && (
                               <button
                                 onClick={() => handleDeleteArticle(article.slug)}
                                 className="p-2 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 transition-colors"
-                                title="Delete article (Primary Admin only)"
+                                title={isMainAdmin ? 'Delete article' : 'Delete your article'}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -1392,8 +1743,8 @@ export default function WorkspaceAdminPage() {
               </div>
             )}
 
-            {/* ═══ TAB: EMAIL ACCESS MANAGEMENT ═══ */}
-            {activeTab === 'emails' && (
+            {/* ═══ TAB: EMAIL ACCESS MANAGEMENT (Primary Admin Only) ═══ */}
+            {activeTab === 'emails' && isCurrentPrimaryAdmin && (
               <div className="space-y-6">
                 <div>
                   <h1 className="text-2xl font-extrabold text-slate-900">Partner Access Management</h1>
@@ -1411,66 +1762,54 @@ export default function WorkspaceAdminPage() {
                       <p className="text-sm font-bold text-slate-900">{authenticatedEmail}</p>
                     </div>
                   </div>
-                  {isCurrentPrimaryAdmin ? (
-                    <span className="px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-xs font-extrabold flex items-center gap-1.5 shadow-sm">
-                      👑 Primary Admin (Owner) — You have full permission to add/remove members
-                    </span>
-                  ) : (
-                    <span className="px-3 py-1 rounded-full bg-slate-200 border border-slate-300 text-slate-700 text-xs font-bold flex items-center gap-1.5">
-                      🔒 Standard Partner — Read-only team list (Cannot add or remove members)
-                    </span>
-                  )}
+                  <span className="px-3 py-1 rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-xs font-extrabold flex items-center gap-1.5 shadow-sm">
+                    👑 Primary Admin (Owner) — You have full permission to add/remove members
+                  </span>
                 </div>
 
                 {/* Grant access form (Primary Admin only) */}
-                {isCurrentPrimaryAdmin ? (
-                  <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
-                        <Plus className="w-4 h-4 text-indigo-600" />
-                      </div>
-                      <h2 className="text-base font-bold text-slate-900">Grant Partner Access</h2>
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                      <Plus className="w-4 h-4 text-indigo-600" />
                     </div>
-
-                    {emailSuccessMsg && (
-                      <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                        <span>{emailSuccessMsg}</span>
-                      </div>
-                    )}
-
-                    <form onSubmit={handleAddEmail} className="flex gap-3">
-                      <div className="relative flex-1">
-                        <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="email"
-                          required
-                          value={newEmailToAdd}
-                          onChange={(e) => setNewEmailToAdd(e.target.value)}
-                          placeholder="partner@example.com"
-                          className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        className="px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm transition-colors flex items-center gap-2 shrink-0"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Add Access</span>
-                      </button>
-                    </form>
+                    <h2 className="text-base font-bold text-slate-900">Grant Partner Access</h2>
                   </div>
-                ) : (
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-slate-600 text-xs flex items-center gap-2">
-                    <span>🔒 Only Primary Admin ({MAIN_ADMIN_EMAIL}) can grant or remove partner access.</span>
-                  </div>
-                )}
+
+                  {emailSuccessMsg && (
+                    <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span>{emailSuccessMsg}</span>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleAddEmail} className="flex gap-3">
+                    <div className="relative flex-1">
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="email"
+                        required
+                        value={newEmailToAdd}
+                        onChange={(e) => setNewEmailToAdd(e.target.value)}
+                        placeholder="partner@example.com"
+                        className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm transition-colors flex items-center gap-2 shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Access</span>
+                    </button>
+                  </form>
+                </div>
 
                 {/* Email list */}
                 <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                   <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                     <h2 className="text-sm font-bold text-slate-700">Authorized Partners ({allowedEmails.length})</h2>
-                    <span className="text-[11px] text-slate-400 font-medium">All have full admin access</span>
+                    <span className="text-[11px] text-slate-400 font-medium">All have admin access</span>
                   </div>
                   <div className="divide-y divide-slate-100">
                     {allowedEmails
@@ -1498,7 +1837,7 @@ export default function WorkspaceAdminPage() {
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                 Authorized
                               </span>
-                              {isCurrentPrimaryAdmin && !isPrimaryAdmin && (
+                              {!isPrimaryAdmin && (
                                 <button
                                   onClick={() => handleRemoveEmail(email)}
                                   className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
@@ -1513,17 +1852,6 @@ export default function WorkspaceAdminPage() {
                       })}
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* ═══ TAB: SEO AUDIT ═══ */}
-            {activeTab === 'audit' && (
-              <div className="space-y-6">
-                <div>
-                  <h1 className="text-2xl font-extrabold text-slate-900">SEO Quality Audit</h1>
-                  <p className="text-sm text-slate-500 mt-0.5">Run technical SEO checks on the FLYO website</p>
-                </div>
-                <AuditTool />
               </div>
             )}
 
@@ -1753,7 +2081,7 @@ export default function WorkspaceAdminPage() {
                     >
                       {isSavingTeam ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <FlyoLoader size="xs" />
                           <span>Saving Changes...</span>
                         </>
                       ) : editingTeamId ? (
@@ -1863,6 +2191,132 @@ export default function WorkspaceAdminPage() {
           </div>
         </div>
       </div>
+
+      {/* ── CHANGE PASSWORD MODAL ── */}
+      {isPasswordModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-600/20">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-sm">Change Workspace Password</h3>
+                  <p className="text-[11px] text-slate-500">{authenticatedEmail}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsPasswordModalOpen(false)}
+                className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleChangePassword} className="p-6 space-y-4">
+              <div>
+                <label className={labelClass}>Current Password *</label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPass ? 'text' : 'password'}
+                    required
+                    value={currentPassInput}
+                    onChange={(e) => setCurrentPassInput(e.target.value)}
+                    placeholder="Enter current password (default: user)"
+                    className={inputClass}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPass(!showCurrentPass)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className={labelClass}>New Password *</label>
+                <div className="relative">
+                  <input
+                    type={showNewPass ? 'text' : 'password'}
+                    required
+                    minLength={3}
+                    value={newPassInput}
+                    onChange={(e) => setNewPassInput(e.target.value)}
+                    placeholder="Enter new password"
+                    className={inputClass}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPass(!showNewPass)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className={labelClass}>Confirm New Password *</label>
+                <input
+                  type="password"
+                  required
+                  value={confirmPassInput}
+                  onChange={(e) => setConfirmPassInput(e.target.value)}
+                  placeholder="Re-type new password"
+                  className={inputClass}
+                />
+              </div>
+
+              {/* Status alerts */}
+              {passwordChangeError && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+                  <span>{passwordChangeError}</span>
+                </div>
+              )}
+
+              {passwordChangeSuccess && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+                  <span>{passwordChangeSuccess}</span>
+                </div>
+              )}
+
+              <div className="pt-2 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPasswordModalOpen(false)}
+                  className="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingPassword}
+                  className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20"
+                >
+                  {isSavingPassword ? (
+                    <>
+                      <FlyoLoader size="xs" />
+                      <span>Updating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Save Password</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

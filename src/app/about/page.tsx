@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, X, ExternalLink, GraduationCap, UserCheck, Loader2 } from 'lucide-react';
+import { ArrowRight, X, ExternalLink, GraduationCap, UserCheck } from 'lucide-react';
+import FlyoLoader from '@/components/ui/FlyoLoader';
 import { COMPANY_INFO } from '@/lib/data/company';
 import { getVisibleTeamMembers, syncTeamFromFirestore } from '@/lib/data/teamStore';
 import { TeamMember } from '@/lib/types/seo';
@@ -82,9 +83,8 @@ export default function AboutPage() {
         </div>
 
         {loading ? (
-          <div className="flex items-center gap-2 text-slate-400 text-sm py-8">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Loading team members...</span>
+          <div className="py-12 flex items-center justify-center">
+            <FlyoLoader size="sm" label="Loading team members..." />
           </div>
         ) : members.length === 0 ? (
           <p className="text-sm text-slate-500">Team coming soon…</p>

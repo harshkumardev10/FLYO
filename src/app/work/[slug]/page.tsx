@@ -1,143 +1,93 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { CheckCircle2, ArrowRight, Layers, ArrowLeft } from 'lucide-react';
+import { Metadata } from 'next';
 import { PORTFOLIO_DATA } from '@/lib/data/work';
-import { getAllProjects, syncProjectsFromFirestore } from '@/lib/data/workStore';
-import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import { WorkProject } from '@/lib/types/seo';
+import WorkPageClient from './WorkPageClient';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://flyoo.vercel.app';
+const FIREBASE_PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'flyo-1863c';
 
 interface WorkPageProps {
-  params: {
-    slug: string;
+  params: { slug: string };
+}
+
+async function fetchProject(slug: string): Promise<WorkProject | null> {
+  const staticProj = PORTFOLIO_DATA.find((p) => p.slug === slug);
+  if (staticProj) return staticProj;
+
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/projects/${encodeURIComponent(slug)}`;
+    const res = await fetch(url, { next: { revalidate: 60 } });
+    if (!res.ok) return null;
+
+    const json = await res.json();
+    if (!json.fields) return null;
+
+    const f = json.fields;
+    const get = (key: string) => f[key]?.stringValue ?? '';
+
+    return {
+      slug: get('slug') || slug,
+      title: get('title'),
+      clientName: get('clientName'),
+      category: (get('category') as any) || 'Websites',
+      service: get('service'),
+      shortDescription: get('shortDescription'),
+      challenge: get('challenge'),
+      whatWeDid: f.whatWeDid?.arrayValue?.values?.map((v: any) => v.stringValue) || [],
+      finalResult: get('finalResult'),
+      heroImage: get('heroImage'),
+      measurableResult: get('measurableResult') || undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function generateMetadata({ params }: WorkPageProps): Promise<Metadata> {
+  const project = await fetchProject(params.slug);
+
+  if (!project) {
+    return {
+      title: 'Project Not Found | FLYO',
+      description: 'The requested project could not be found.',
+    };
+  }
+
+  const pageUrl = `${SITE_URL}/work/${project.slug}`;
+  const ogImage = project.heroImage || `${SITE_URL}/kingfisher-logo.jpg`;
+
+  return {
+    title: `${project.title} - Case Study | FLYO`,
+    description: `${project.shortDescription} Discover how FLYO built and scaled ${project.title} with high-converting web design and business growth strategies.`,
+    openGraph: {
+      type: 'article',
+      url: pageUrl,
+      title: `${project.title} | FLYO Client Case Study`,
+      description: project.shortDescription,
+      siteName: 'FLYO',
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: project.title,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${project.title} | FLYO`,
+      description: project.shortDescription,
+      images: [ogImage],
+      site: '@flyodigital',
+    },
+    alternates: {
+      canonical: pageUrl,
+    },
   };
 }
 
-export default function WorkDetailPage({ params }: WorkPageProps) {
-  const [project, setProject] = useState<WorkProject | null>(() => {
-    return PORTFOLIO_DATA.find((p) => p.slug === params.slug) || null;
-  });
-
-  useEffect(() => {
-    const load = () => {
-      const all = getAllProjects();
-      const found = all.find((p) => p.slug === params.slug);
-      if (found) setProject(found);
-    };
-    load();
-    syncProjectsFromFirestore().then(load);
-  }, [params.slug]);
-
-  if (!project) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-4">
-        <h1 className="text-2xl font-bold text-slate-900">Project Not Found</h1>
-        <p className="text-xs text-slate-600">The requested portfolio project could not be located.</p>
-        <Link href="/work" className="inline-block px-4 py-2 bg-indigo-600 text-white font-bold text-xs rounded-xl">
-          Back to Portfolio
-        </Link>
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 pb-20">
-      <Breadcrumbs
-        items={[
-          { name: 'Our Work', item: '/work' },
-          { name: project.title, item: `/work/${project.slug}` },
-        ]}
-      />
-
-      {/* Hero Image */}
-      {project.heroImage && (
-        <div className="relative w-full h-64 sm:h-80 md:h-96 rounded-3xl overflow-hidden -mt-2 mb-2 bg-slate-900 border border-slate-200">
-          <img
-            src={project.heroImage}
-            alt={project.title}
-            className="w-full h-full object-cover"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-          />
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="space-y-4 border-b border-slate-200 pb-8">
-        <div className="flex items-center gap-2 text-xs font-bold text-indigo-600">
-          <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700">{project.category}</span>
-          <span>•</span>
-          <span className="text-slate-500">{project.service}</span>
-        </div>
-
-        <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-          {project.title}
-        </h1>
-
-        <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
-          {project.shortDescription}
-        </p>
-      </div>
-
-      {/* Challenge */}
-      {project.challenge && (
-        <section className="p-6 rounded-2xl bg-white border border-slate-200 space-y-2">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-            The Challenge
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-            {project.challenge}
-          </p>
-        </section>
-      )}
-
-      {/* What We Did */}
-      {project.whatWeDid && project.whatWeDid.length > 0 && (
-        <section className="space-y-4">
-          <h2 className="text-xl font-bold text-slate-900">
-            What We Did
-          </h2>
-          <div className="space-y-2">
-            {project.whatWeDid.map((step, idx) => (
-              <div key={idx} className="p-4 rounded-xl bg-white border border-slate-200 flex items-start gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span className="text-xs sm:text-sm text-slate-700">{step}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Final Result */}
-      {project.finalResult && (
-        <section className="p-6 rounded-2xl bg-slate-900 text-white space-y-3">
-          <h2 className="text-lg font-bold text-white">Final Result & Impact</h2>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            {project.finalResult}
-          </p>
-          {project.measurableResult && (
-            <div className="pt-2 text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Measured Outcome: {project.measurableResult}</span>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* CTA */}
-      <div className="p-8 rounded-3xl bg-indigo-600 text-white text-center space-y-4 shadow-sm">
-        <h2 className="text-2xl font-extrabold">Want similar results for your local business?</h2>
-        <p className="text-xs text-indigo-100 max-w-md mx-auto leading-relaxed">
-          Let's discuss your business goals and build a clear, effective digital solution.
-        </p>
-        <Link
-          href="/contact"
-          className="inline-flex items-center gap-1.5 px-6 py-3 rounded-xl bg-white text-indigo-700 font-bold text-xs hover:bg-indigo-50 transition-colors"
-        >
-          <span>Discuss Your Project</span>
-          <ArrowRight className="w-4 h-4" />
-        </Link>
-      </div>
-    </div>
-  );
+export default async function WorkDetailPage({ params }: WorkPageProps) {
+  const initialProject = await fetchProject(params.slug);
+  return <WorkPageClient slug={params.slug} initialProject={initialProject} />;
 }

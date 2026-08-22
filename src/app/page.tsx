@@ -24,10 +24,12 @@ import { SERVICES_DATA } from '@/lib/data/services';
 import { PORTFOLIO_DATA } from '@/lib/data/work';
 import { ARTICLES_DATA } from '@/lib/data/articles';
 import { COMPANY_INFO } from '@/lib/data/company';
+import { JsonLd } from '@/components/seo/JsonLd';
+import { generateFAQSchema } from '@/lib/seo/schemas';
 
 export const metadata = generatePageMetadata({
-  title: 'Flyoo | Make Your Business Fly - Web Design & Local SEO India',
-  description: 'Flyoo is a student-led digital studio by Harsh Kumar (GLA University, Mathura). We build fast websites, run local SEO campaigns, create promotional content & manage social media for Indian businesses. Search "flyoo" to find us.',
+  title: 'FLYO | Grow Your Business Online - Web Design & Local SEO',
+  description: 'FLYO (flyo / flyoo / FLYO digital) helps local businesses grow online with high-converting web development, local SEO ranking, social media & growth strategy. Make your business fly with FLYO.',
   canonicalUrl: '/',
 });
 
@@ -78,14 +80,35 @@ export default function HomePage() {
   ];
 
   const differentiators = [
-    { icon: '🎯', title: 'Built for Local Businesses', desc: 'We understand the unique challenges of small local businesses and craft solutions around your real goals.' },
-    { icon: '💰', title: 'Honest & Fair Pricing', desc: 'No bloated packages. You only pay for what actually benefits your business — nothing more.' },
-    { icon: '⚡', title: 'Fast Turnaround', desc: 'Quick delivery without compromising quality. Your time matters as much as ours.' },
-    { icon: '🤝', title: 'Long-term Partnership', desc: 'We don\'t just build and disappear. We stay involved to help your business grow continuously.' },
+    { icon: '🎯', title: 'Built for Business Growth', desc: 'We craft digital solutions centered around attracting local customers and driving business revenue.' },
+    { icon: '💰', title: 'Honest & Fair Pricing', desc: 'No bloated agency packages. Pay only for practical services that deliver results.' },
+    { icon: '⚡', title: 'Fast Turnaround', desc: 'Quick website launch and rapid local SEO deployment to start building authority fast.' },
+    { icon: '🤝', title: 'Direct Founder Support', desc: 'Work directly with founder Harsh Kumar for personalized growth strategy and dedicated care.' },
+  ];
+
+  const homepageFaqs = [
+    {
+      question: 'How can FLYO help grow my business online?',
+      answer: 'FLYO (flyo / flyoo) builds high-converting modern websites, runs targeted local SEO campaigns, creates video content, and manages social media to help local businesses rank on top of Google and attract more paying customers.',
+    },
+    {
+      question: 'Why is Local SEO important for growing local businesses?',
+      answer: 'Local SEO ensures that when prospective customers search for services, business growth keywords, or local solutions in your area, your business appears at the top of Google Maps & Google Search results.',
+    },
+    {
+      question: 'What makes FLYO different from traditional agencies?',
+      answer: 'FLYO is a student-led digital studio founded by Harsh Kumar at GLA University. We offer transparent pricing, rapid turnaround times, direct founder communication, and practical strategies focused strictly on ROI and real business growth.',
+    },
+    {
+      question: 'How quickly can FLYO build a website or start growing my business?',
+      answer: 'Our average website delivery is 5-7 business days, and initial SEO optimizations are deployed within 48 hours so your business starts building authority immediately.',
+    },
   ];
 
   return (
     <div className="overflow-hidden">
+      <JsonLd data={generateFAQSchema(homepageFaqs)} />
+
       
       {/* ═══════════════════════════════════════════
           HERO SECTION - Dark, Bold, Animated
@@ -510,6 +533,38 @@ export default function HomePage() {
                   <ArrowRight className="w-3.5 h-3.5" />
                 </div>
               </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
+          BUSINESS GROWTH FAQ SECTION
+      ═══════════════════════════════════════════ */}
+      <section className="py-20 bg-white border-t border-slate-200">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          <div className="text-center space-y-3">
+            <span className="px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold uppercase tracking-wider">
+              Grow Your Business FAQ
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+              Frequently Asked Questions About Growing Your Business with FLYO
+            </h2>
+            <p className="text-slate-500 text-sm max-w-xl mx-auto">
+              Everything you need to know about scaling your local business online with FLYO web design and SEO strategies.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            {homepageFaqs.map((faq, index) => (
+              <div key={index} className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <span className="text-indigo-600 font-extrabold">Q.</span> {faq.question}
+                </h3>
+                <p className="text-sm text-slate-600 leading-relaxed pl-6">
+                  {faq.answer}
+                </p>
+              </div>
             ))}
           </div>
         </div>

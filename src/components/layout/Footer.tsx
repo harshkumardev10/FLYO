@@ -77,7 +77,6 @@ export function Footer() {
             <ul className="space-y-2">
               <li><Link href="/privacy" className="hover:text-indigo-600 transition-colors">Privacy Policy</Link></li>
               <li><Link href="/terms" className="hover:text-indigo-600 transition-colors">Terms of Service</Link></li>
-              <li><Link href="/sitemap.xml" className="hover:text-indigo-600 transition-colors">Sitemap</Link></li>
             </ul>
           </div>
 

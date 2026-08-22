@@ -109,30 +109,37 @@ export function getHiddenSlugs(): string[] {
 
 /**
  * Get combined list of static articles + Firebase articles
- * For PUBLIC view: Filters out soft-deleted static slugs AND pending articles.
+ * For PUBLIC view: shows approved dynamic articles, and ALL static articles
+ * unless they are explicitly hidden OR overridden by an approved Firestore version.
  */
 export function getAllArticles(): ArticleItem[] {
-  const customSlugs = firestoreArticlesCache.map(a => a.slug);
-
-  // Public only sees approved dynamic articles
+  // Only approved Firestore articles are visible publicly
   const approvedCustom = firestoreArticlesCache.filter(a => a.status === 'approved' || !a.status);
   
-  // Static articles that haven't been soft-deleted and aren't overridden in Firebase
+  // Slugs that have an approved Firestore version (they replace the static copy)
+  const approvedCustomSlugs = approvedCustom.map(a => a.slug);
+
+  // Static articles that:
+  //   1. Are NOT explicitly soft-deleted (in hidden_slugs)
+  //   2. Are NOT overridden by an APPROVED Firestore version
   const visibleStatic = ARTICLES_DATA.filter(
-    a => !hiddenSlugsCache.includes(a.slug) && !customSlugs.includes(a.slug)
+    a => !hiddenSlugsCache.includes(a.slug) && !approvedCustomSlugs.includes(a.slug)
   );
 
   return [...approvedCustom, ...visibleStatic];
 }
 
 /**
- * Get ALL articles (including pending ones) for Admin Workspace view from Firebase
+ * Get ALL articles (including pending ones) for Admin Workspace view
+ * Shows every Firestore article + every static article not explicitly hidden.
+ * If a static article also exists in Firestore, shows the Firestore version (so edits are visible).
  */
 export function getAllArticlesForAdmin(): ArticleItem[] {
-  const customSlugs = firestoreArticlesCache.map(a => a.slug);
+  const firestoreSlugs = firestoreArticlesCache.map(a => a.slug);
 
+  // Static articles that haven't been soft-deleted (Firestore version shown instead if exists)
   const visibleStatic = ARTICLES_DATA.filter(
-    a => !hiddenSlugsCache.includes(a.slug) && !customSlugs.includes(a.slug)
+    a => !hiddenSlugsCache.includes(a.slug) && !firestoreSlugs.includes(a.slug)
   );
 
   return [...firestoreArticlesCache, ...visibleStatic];

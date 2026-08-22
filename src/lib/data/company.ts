@@ -1,11 +1,22 @@
 export const COMPANY_INFO = {
-  name: 'Flyo',
-  shortName: 'Flyo',
-  legalName: 'Flyo Digital Studio LLP',
-  tagline: 'Make Your Business Fly',
-  alternateName: ['flyoo', 'flyoo digital', 'Flyoo', 'Flyo Digital', 'FLYO', 'flyo businesses'],
+  name: 'FLYO',
+  shortName: 'FLYO',
+  legalName: 'FLYO Digital Studio LLP',
+  tagline: 'Make Your Business Fly & Grow Online',
+  alternateName: [
+    'FLYO',
+    'Flyoo',
+    'Flyo',
+    'flyo',
+    'flyoo',
+    'FLYO Digital',
+    'Flyoo Digital',
+    'Flyo Digital Studio',
+    'flyoo.vercel.app',
+    'flyo businesses'
+  ],
   description:
-    'We are a small startup founded and operated by college students from GLA University. We build modern websites, create promotional content, manage social media, and help local businesses fly in the digital world.',
+    'FLYO helps local businesses grow online with high-converting web development, local SEO, social media marketing, and promotional content. Make your business fly with FLYO.',
   url: 'https://flyoo.vercel.app',
   logo: 'https://flyoo.vercel.app/kingfisher-logo.jpg',
   foundingYear: '2026',

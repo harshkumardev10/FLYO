@@ -48,10 +48,10 @@ export function generatePageMetadata(data: SEOData): Metadata {
       type: data.openGraph?.type || 'website',
       images: data.openGraph?.images || [
         {
-          url: `${BASE_URL}/og-default.jpg`,
+          url: `${BASE_URL}/kingfisher-logo.jpg`,
           width: 1200,
           height: 630,
-          alt: COMPANY_INFO.name,
+          alt: `${COMPANY_INFO.name} - Make Your Business Fly & Grow Online`,
         },
       ],
     },
@@ -59,8 +59,9 @@ export function generatePageMetadata(data: SEOData): Metadata {
       card: 'summary_large_image',
       title: data.openGraph?.title || title,
       description: data.openGraph?.description || data.description,
-      creator: '@apexdigital',
-      images: [data.openGraph?.images?.[0]?.url || `${BASE_URL}/og-default.jpg`],
+      site: '@flyodigital',
+      creator: '@flyodigital',
+      images: [data.openGraph?.images?.[0]?.url || `${BASE_URL}/kingfisher-logo.jpg`],
     },
   };
 }

@@ -87,11 +87,16 @@ export function Header() {
             {partnerEmail && (
               <Link
                 href="/workspace"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 font-semibold text-xs hover:bg-amber-100 transition-all"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0B132B] hover:bg-[#101b3d] border border-slate-700 hover:border-cyan-400 text-white transition-all duration-200 shadow-md hover:shadow-cyan-500/20 hover:scale-105 active:scale-95"
                 title={`Authorized Partner: ${partnerEmail}`}
               >
-                <Lock className="w-3.5 h-3.5 text-amber-600" />
-                <span>Partner Workspace</span>
+                <div className="w-5 h-5 rounded-md overflow-hidden bg-white p-0.5 flex items-center justify-center shadow-sm shrink-0">
+                  <img src="/kingfisher-logo.jpg" alt="FLYO" className="w-full h-full object-cover" />
+                </div>
+                <span className="font-black text-xs tracking-wider text-white uppercase">FLYO</span>
+                <span className="text-[9px] text-cyan-400 font-extrabold px-1.5 py-0.5 rounded border border-cyan-500/50 bg-cyan-950/60 leading-none">
+                  STUDIO
+                </span>
               </Link>
             )}
 
@@ -137,9 +142,18 @@ export function Header() {
             <Link
               href="/workspace"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="block text-xs font-bold text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200"
+              className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-[#0B132B] border border-slate-700 text-white font-bold text-xs"
             >
-              🔒 Partner Workspace ({partnerEmail})
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-md overflow-hidden bg-white p-0.5 flex items-center justify-center shadow-sm shrink-0">
+                  <img src="/kingfisher-logo.jpg" alt="FLYO" className="w-full h-full object-cover" />
+                </div>
+                <span className="font-black text-xs tracking-wider text-white uppercase">FLYO</span>
+                <span className="text-[9px] text-cyan-400 font-extrabold px-1.5 py-0.5 rounded border border-cyan-500/50 bg-cyan-950/60 leading-none">
+                  STUDIO
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-normal truncate max-w-[120px]">{partnerEmail}</span>
             </Link>
           )}
 
