@@ -260,3 +260,108 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* ─────────────────────────────────────────────
+   ARTICLE TYPOGRAPHY & HYPERLINK STYLING
+   Ensures all articles (new & already uploaded)
+   have vibrant blue underlined links, bold, italic,
+   and clean paragraph/line spacing.
+───────────────────────────────────────────── */
+.article-content-body,
+article .prose,
+.prose {
+  color: #334155;
+}
+
+.article-content-body a,
+article .prose a,
+.prose a {
+  color: #2563eb !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px !important;
+  text-decoration-color: rgba(37, 99, 235, 0.7) !important;
+  font-weight: 600 !important;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.article-content-body a:hover,
+article .prose a:hover,
+.prose a:hover {
+  color: #1d4ed8 !important;
+  text-decoration-color: #1d4ed8 !important;
+}
+
+.article-content-body strong,
+.article-content-body b,
+article .prose strong,
+article .prose b {
+  font-weight: 700 !important;
+  color: #0f172a !important;
+}
+
+.article-content-body em,
+.article-content-body i,
+article .prose em,
+article .prose i {
+  font-style: italic !important;
+  color: #1e293b;
+}
+
+.article-content-body p,
+article .prose p {
+  margin-bottom: 1.5rem !important;
+  line-height: 1.85 !important;
+  font-size: 1.05rem;
+}
+
+.article-content-body h1,
+.article-content-body h2,
+.article-content-body h3,
+article .prose h1,
+article .prose h2,
+article .prose h3 {
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  line-height: 1.3 !important;
+  letter-spacing: -0.02em;
+}
+
+.article-content-body h2,
+article .prose h2 {
+  margin-top: 2.25rem !important;
+  margin-bottom: 1rem !important;
+  font-size: 1.45rem;
+}
+
+.article-content-body h3,
+article .prose h3 {
+  margin-top: 1.75rem !important;
+  margin-bottom: 0.75rem !important;
+  font-size: 1.25rem;
+}
+
+.article-content-body ul,
+.article-content-body ol,
+article .prose ul,
+article .prose ol {
+  margin-top: 1.25rem !important;
+  margin-bottom: 1.5rem !important;
+  padding-left: 1.75rem !important;
+}
+
+.article-content-body li,
+article .prose li {
+  margin-bottom: 0.5rem !important;
+  line-height: 1.75 !important;
+}
+
+.article-content-body blockquote,
+article .prose blockquote {
+  border-left: 4px solid #3b82f6 !important;
+  background-color: #eff6ff !important;
+  padding: 0.85rem 1.25rem !important;
+  border-radius: 0 0.75rem 0.75rem 0 !important;
+  margin: 1.75rem 0 !important;
+  font-style: italic !important;
+  color: #1e293b !important;
+}

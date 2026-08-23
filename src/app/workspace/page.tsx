@@ -69,6 +69,8 @@ import { ArticleItem, TeamMember, WorkProject } from '@/lib/types/seo';
 import { verifyUserPassword, changeUserPassword } from '@/lib/data/authStore';
 
 const AUTH_STORAGE_KEY = 'flyo_authenticated_partner_email';
+// Profile name stored per-email
+const PROFILE_NAME_KEY_PREFIX = 'flyo_profile_name_';
 
 export default function WorkspaceAdminPage() {
   const [emailInput, setEmailInput] = useState('');
@@ -88,6 +90,11 @@ export default function WorkspaceAdminPage() {
   const [passwordChangeSuccess, setPasswordChangeSuccess] = useState('');
   const [passwordChangeError, setPasswordChangeError] = useState('');
   const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  // ── Profile Name State ──
+  const [savedProfileName, setSavedProfileName] = useState('');
+  const [isEditingProfileName, setIsEditingProfileName] = useState(false);
+  const [profileNameInput, setProfileNameInput] = useState('');
   
   const [allowedEmails, setAllowedEmails] = useState<string[]>([]);
   const [newEmailToAdd, setNewEmailToAdd] = useState('');
@@ -130,7 +137,7 @@ export default function WorkspaceAdminPage() {
   // Article Upload Form State
   const [articleTitle, setArticleTitle] = useState('');
   const [articleCategory, setArticleCategory] = useState<'SEO' | 'Social Media' | 'Websites' | 'Marketing' | 'Local Business' | 'Design'>('Local Business');
-  const [authorName, setAuthorName] = useState('FLYO Team');
+  const [authorName, setAuthorName] = useState('FLYO Team'); // will be overridden by profile name
   const [authorRole, setAuthorRole] = useState('Digital Strategist');
   const [readingTime, setReadingTime] = useState(5);
   const [summary, setSummary] = useState('');
@@ -159,6 +166,13 @@ export default function WorkspaceAdminPage() {
       const saved = localStorage.getItem(AUTH_STORAGE_KEY);
       if (saved && allowed.includes(saved.toLowerCase())) {
         setAuthenticatedEmail(saved);
+        // Load saved profile name for this email
+        const savedName = localStorage.getItem(`${PROFILE_NAME_KEY_PREFIX}${saved.toLowerCase()}`) || '';
+        if (savedName) {
+          setSavedProfileName(savedName);
+          setProfileNameInput(savedName);
+          setAuthorName(savedName);
+        }
       }
     }
 
@@ -208,6 +222,17 @@ export default function WorkspaceAdminPage() {
         setAllowedEmails(getAllowedAdminEmails());
         if (typeof window !== 'undefined') {
           localStorage.setItem(AUTH_STORAGE_KEY, cleanEmail);
+          // Load saved profile name for this email
+          const savedName = localStorage.getItem(`${PROFILE_NAME_KEY_PREFIX}${cleanEmail}`) || '';
+          if (savedName) {
+            setSavedProfileName(savedName);
+            setProfileNameInput(savedName);
+            setAuthorName(savedName);
+          } else {
+            setSavedProfileName('');
+            setProfileNameInput('');
+            setAuthorName('FLYO Team');
+          }
         }
         setAuthError('');
         setPasswordInput('');
@@ -297,7 +322,8 @@ export default function WorkspaceAdminPage() {
     setSummary('');
     setContentHtml('');
     setHeroImage('https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?q=80&w=1200&auto=format&fit=crop');
-    setAuthorName('FLYO Team');
+    // Restore to profile name (or 'FLYO Team' if no profile name set)
+    setAuthorName(savedProfileName || 'FLYO Team');
     setAuthorRole('Digital Strategist');
     setReadingTime(5);
     setRelatedServiceSlug('web-development');
@@ -1191,17 +1217,111 @@ export default function WorkspaceAdminPage() {
                     </div>
 
                     <div className="p-6 border-b border-slate-100 space-y-5">
-                      <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Author Info</h2>
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Author Info</h2>
+                        {/* Profile name setup/status chip */}
+                        {savedProfileName ? (
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-semibold">
+                              <Lock className="w-3 h-3 text-emerald-500" />
+                              <span>Name auto-filled from your profile</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsEditingProfileName(true);
+                                setProfileNameInput(savedProfileName);
+                              }}
+                              className="text-[11px] text-indigo-600 hover:underline font-semibold"
+                            >
+                              Edit Profile Name
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-semibold">
+                            <AlertCircle className="w-3 h-3 text-amber-500" />
+                            <span>Set your profile name once to auto-fill forever</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Profile Name Edit Banner */}
+                      {(!savedProfileName || isEditingProfileName) && (
+                        <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 flex items-start sm:items-center gap-3 flex-col sm:flex-row">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-indigo-800 mb-1">
+                              {savedProfileName ? '✏️ Update your profile display name' : '👤 Set your profile name once'}
+                            </p>
+                            <p className="text-[11px] text-indigo-600 leading-relaxed">
+                              This name will automatically fill the Author Name field on every article you post.
+                            </p>
+                            <div className="flex items-center gap-2 mt-2.5">
+                              <input
+                                type="text"
+                                value={profileNameInput}
+                                onChange={(e) => setProfileNameInput(e.target.value)}
+                                placeholder="e.g. Harsh Kumar, Jane Doe..."
+                                className="flex-1 bg-white border border-indigo-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const name = profileNameInput.trim();
+                                  if (!name) return;
+                                  setSavedProfileName(name);
+                                  setAuthorName(name);
+                                  setIsEditingProfileName(false);
+                                  if (typeof window !== 'undefined' && authenticatedEmail) {
+                                    localStorage.setItem(`${PROFILE_NAME_KEY_PREFIX}${authenticatedEmail.toLowerCase()}`, name);
+                                  }
+                                }}
+                                className="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors flex items-center gap-1.5 shrink-0"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                Save & Lock
+                              </button>
+                              {isEditingProfileName && (
+                                <button
+                                  type="button"
+                                  onClick={() => setIsEditingProfileName(false)}
+                                  className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-100 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label htmlFor="authorName" className={labelClass}>Author Name</label>
-                          <input
-                            id="authorName"
-                            type="text"
-                            value={authorName}
-                            onChange={(e) => setAuthorName(e.target.value)}
-                            className={inputClass}
-                          />
+                          <label htmlFor="authorName" className={labelClass}>
+                            Author Name
+                            {savedProfileName && !isEditingProfileName && (
+                              <span className="ml-2 inline-flex items-center gap-1 text-emerald-600 font-medium normal-case text-[10px]">
+                                <Lock className="w-2.5 h-2.5" /> from profile
+                              </span>
+                            )}
+                          </label>
+                          <div className="relative">
+                            <input
+                              id="authorName"
+                              type="text"
+                              value={authorName}
+                              onChange={(e) => setAuthorName(e.target.value)}
+                              placeholder={savedProfileName || 'e.g. Harsh Kumar'}
+                              className={`${inputClass} ${savedProfileName && !isEditingProfileName ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900 font-semibold' : ''}`}
+                            />
+                            {savedProfileName && !isEditingProfileName && (
+                              <Lock className="w-3.5 h-3.5 text-emerald-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            )}
+                          </div>
+                          {savedProfileName && !isEditingProfileName && (
+                            <p className="mt-1 text-[10px] text-emerald-600 font-medium">
+                              ✅ Auto-filled from your saved profile
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label htmlFor="authorRole" className={labelClass}>Author Role</label>
@@ -1215,6 +1335,7 @@ export default function WorkspaceAdminPage() {
                         </div>
                       </div>
                     </div>
+
 
                     <div className="p-6 border-b border-slate-100 space-y-5">
                       <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Article Content</h2>
@@ -1360,8 +1481,8 @@ export default function WorkspaceAdminPage() {
                         </div>
                         {contentHtml && (
                           <div
-                            className="prose prose-sm max-w-none pt-4 border-t border-slate-100 text-slate-700"
-                            dangerouslySetInnerHTML={{ __html: contentHtml }}
+                            className="article-content-body prose prose-sm max-w-none pt-4 border-t border-slate-100 text-slate-700"
+                            dangerouslySetInnerHTML={{ __html: formatContentWithHyperlinks(contentHtml) }}
                           />
                         )}
                       </div>

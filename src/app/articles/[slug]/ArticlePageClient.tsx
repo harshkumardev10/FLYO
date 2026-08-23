@@ -110,7 +110,7 @@ export default function ArticlePageClient({ slug, initialArticle }: ArticlePageC
 
       {/* Article Content */}
       <div
-        className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-3 prose-p:text-slate-700 prose-p:leading-relaxed prose-p:text-sm sm:prose-p:text-base prose-a:text-indigo-600 prose-a:underline font-normal"
+        className="article-content-body prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:tracking-tight prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3 prose-p:text-slate-700 prose-p:leading-[1.8] sm:prose-p:leading-[1.85] prose-p:text-base sm:prose-p:text-lg prose-p:mb-6 prose-strong:font-bold prose-strong:text-slate-900 prose-em:italic prose-em:text-slate-800 prose-a:text-blue-600 prose-a:underline prose-a:font-semibold prose-a:decoration-blue-500/80 prose-a:underline-offset-2 hover:prose-a:text-blue-800 transition-colors font-normal"
         dangerouslySetInnerHTML={{ __html: formattedHtml }}
       />
 
