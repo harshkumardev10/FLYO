@@ -53,6 +53,8 @@ export interface WorkProject {
 export interface ArticleItem {
   slug: string;
   title: string;
+  metaTitle?: string;
+  metaDescription?: string;
   summary: string;
   category: 'SEO' | 'Social Media' | 'Websites' | 'Marketing' | 'Local Business' | 'Design';
   publishedAt: string;
@@ -60,10 +62,12 @@ export interface ArticleItem {
   authorRole: string;
   readingTimeMinutes: number;
   heroImage: string;
+  heroImageAlt?: string;
   contentHtml: string;
   relatedServiceSlug?: string;
   status?: 'pending' | 'approved';
   submittedBy?: string;
+  faqs?: Array<{ question: string; answer: string }>;
 }
 
 export interface TeamMember {

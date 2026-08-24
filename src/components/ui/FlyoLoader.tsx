@@ -49,7 +49,7 @@ export default function FlyoLoader({
         >
           <img
             src="/kingfisher-logo.jpg"
-            alt="FLYO"
+            alt="flyoo businesses"
             className="w-full h-full object-cover rounded-full"
           />
         </div>

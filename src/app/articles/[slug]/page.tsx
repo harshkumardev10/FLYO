@@ -1,10 +1,11 @@
 // SERVER COMPONENT — no 'use client' here
-// Generates Open Graph / Twitter Card meta tags so sharing the URL
-// automatically shows the article image on WhatsApp, Telegram, Twitter, etc.
+// Generates Open Graph / Twitter Card meta tags and Schema.org JSON-LD (Article + FAQPage)
 
 import { Metadata } from 'next';
 import { ARTICLES_DATA } from '@/lib/data/articles';
 import { ArticleItem } from '@/lib/types/seo';
+import { generateArticleSchema, generateFAQSchema } from '@/lib/seo/schemas';
+import { getOrGenerateArticleFaqs } from '@/lib/utils/faqGenerator';
 import ArticlePageClient from './ArticlePageClient';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://flyodigital.com';
@@ -15,7 +16,7 @@ interface ArticlePageProps {
 }
 
 /**
- * Fetch article: first check static data, then try Firestore REST API
+ * Fetch article: first check static bundle, then try Firestore REST API
  */
 async function fetchArticle(slug: string): Promise<ArticleItem | null> {
   // 1. Check static bundle first (instant, no network)
@@ -35,9 +36,23 @@ async function fetchArticle(slug: string): Promise<ArticleItem | null> {
     const f = json.fields;
     const get = (key: string) => f[key]?.stringValue ?? f[key]?.integerValue ?? '';
 
+    // Parse FAQs array from firestore REST format if present
+    let parsedFaqs: Array<{ question: string; answer: string }> | undefined = undefined;
+    if (f.faqs?.arrayValue?.values) {
+      parsedFaqs = f.faqs.arrayValue.values
+        .map((v: any) => {
+          const q = v.mapValue?.fields?.question?.stringValue || '';
+          const a = v.mapValue?.fields?.answer?.stringValue || '';
+          return q && a ? { question: q, answer: a } : null;
+        })
+        .filter(Boolean);
+    }
+
     return {
       slug: get('slug') || slug,
       title: get('title'),
+      metaTitle: get('metaTitle') || undefined,
+      metaDescription: get('metaDescription') || undefined,
       summary: get('summary'),
       category: get('category') as ArticleItem['category'],
       publishedAt: get('publishedAt'),
@@ -45,10 +60,12 @@ async function fetchArticle(slug: string): Promise<ArticleItem | null> {
       authorRole: get('authorRole'),
       readingTimeMinutes: Number(f.readingTimeMinutes?.integerValue ?? 5),
       heroImage: get('heroImage'),
+      heroImageAlt: get('heroImageAlt') || undefined,
       contentHtml: get('contentHtml'),
       relatedServiceSlug: get('relatedServiceSlug') || undefined,
       status: (get('status') as ArticleItem['status']) || undefined,
       submittedBy: get('submittedBy') || undefined,
+      faqs: parsedFaqs,
     };
   } catch {
     return null;
@@ -61,23 +78,26 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 
   if (!article) {
     return {
-      title: 'Article Not Found | FLYO',
+      title: 'Article Not Found | flyoo businesses',
       description: 'This article could not be found.',
     };
   }
 
+  const pageTitle = article.metaTitle ? `${article.metaTitle} | flyoo businesses` : `${article.title} | flyoo businesses`;
+  const pageDescription = article.metaDescription || article.summary;
   const pageUrl = `${SITE_URL}/articles/${article.slug}`;
   const ogImage = article.heroImage || `${SITE_URL}/icon.png`;
+  const imageAlt = article.heroImageAlt || article.title;
 
   return {
-    title: `${article.title} | FLYO`,
-    description: article.summary,
+    title: pageTitle,
+    description: pageDescription,
     openGraph: {
       type: 'article',
       url: pageUrl,
-      title: `${article.title} | FLYO`,
-      description: article.summary,
-      siteName: 'FLYO',
+      title: pageTitle,
+      description: pageDescription,
+      siteName: 'flyoo businesses',
       publishedTime: article.publishedAt,
       authors: [article.authorName],
       images: [
@@ -85,14 +105,14 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
           url: ogImage,
           width: 1200,
           height: 630,
-          alt: article.title,
+          alt: imageAlt,
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${article.title} | FLYO`,
-      description: article.summary,
+      title: pageTitle,
+      description: pageDescription,
       images: [ogImage],
       site: '@flyodigital',
     },
@@ -104,9 +124,30 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 
 /* ── Page component (server) ─────────────────────────────────────────── */
 export default async function ArticleDetailPage({ params }: ArticlePageProps) {
-  // Pre-fetch article server-side so the client component has an initial value
-  // (avoids flash of "not found" before Firestore sync)
+  // Pre-fetch article server-side
   const initialArticle = await fetchArticle(params.slug);
 
-  return <ArticlePageClient slug={params.slug} initialArticle={initialArticle} />;
+  const pageUrl = initialArticle ? `${SITE_URL}/articles/${initialArticle.slug}` : `${SITE_URL}/articles/${params.slug}`;
+  const articleSchema = initialArticle ? generateArticleSchema(initialArticle, pageUrl) : null;
+  const manualFaqs = initialArticle?.faqs && initialArticle.faqs.length > 0 ? initialArticle.faqs.filter((f) => f.question?.trim() && f.answer?.trim()) : [];
+  const faqSchema = manualFaqs.length > 0 ? generateFAQSchema(manualFaqs) : null;
+
+  return (
+    <>
+      {/* Schema.org Structured Data */}
+      {articleSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+        />
+      )}
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
+      <ArticlePageClient slug={params.slug} initialArticle={initialArticle} />
+    </>
+  );
 }

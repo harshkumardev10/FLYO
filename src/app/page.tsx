@@ -28,8 +28,8 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { generateFAQSchema } from '@/lib/seo/schemas';
 
 export const metadata = generatePageMetadata({
-  title: 'FLYO | Grow Your Business Online - Web Design & Local SEO',
-  description: 'FLYO (flyo / flyoo / FLYO digital) helps local businesses grow online with high-converting web development, local SEO ranking, social media & growth strategy. Make your business fly with FLYO.',
+  title: 'flyoo businesses | Grow Your Business Online - Web Design & Local SEO',
+  description: 'flyoo businesses (flyo / flyoo / flyoo digital) helps local businesses grow online with high-converting web development, local SEO ranking, social media & growth strategy. Make your business fly with flyoo businesses.',
   canonicalUrl: '/',
 });
 
@@ -88,19 +88,19 @@ export default function HomePage() {
 
   const homepageFaqs = [
     {
-      question: 'How can FLYO help grow my business online?',
-      answer: 'FLYO (flyo / flyoo) builds high-converting modern websites, runs targeted local SEO campaigns, creates video content, and manages social media to help local businesses rank on top of Google and attract more paying customers.',
+      question: 'How can flyoo businesses help grow my business online?',
+      answer: 'flyoo businesses (flyo / flyoo) builds high-converting modern websites, runs targeted local SEO campaigns, creates video content, and manages social media to help local businesses rank on top of Google and attract more paying customers.',
     },
     {
       question: 'Why is Local SEO important for growing local businesses?',
       answer: 'Local SEO ensures that when prospective customers search for services, business growth keywords, or local solutions in your area, your business appears at the top of Google Maps & Google Search results.',
     },
     {
-      question: 'What makes FLYO different from traditional agencies?',
-      answer: 'FLYO is a student-led digital studio founded by Harsh Kumar at GLA University. We offer transparent pricing, rapid turnaround times, direct founder communication, and practical strategies focused strictly on ROI and real business growth.',
+      question: 'What makes flyoo businesses different from traditional agencies?',
+      answer: 'flyoo businesses is a student-led digital studio founded by Harsh Kumar at GLA University. We offer transparent pricing, rapid turnaround times, direct founder communication, and practical strategies focused strictly on ROI and real business growth.',
     },
     {
-      question: 'How quickly can FLYO build a website or start growing my business?',
+      question: 'How quickly can flyoo businesses build a website or start growing my business?',
       answer: 'Our average website delivery is 5-7 business days, and initial SEO optimizations are deployed within 48 hours so your business starts building authority immediately.',
     },
   ];
@@ -195,7 +195,7 @@ export default function HomePage() {
                     </div>
                   ))}
                 </div>
-                <span><strong className="text-white">30+</strong> businesses trust FLYO</span>
+                <span><strong className="text-white">30+</strong> businesses trust flyoo businesses</span>
               </div>
               <div className="h-5 w-px bg-white/10" />
               <div className="flex items-center gap-1.5 text-xs font-medium text-slate-300">
@@ -217,7 +217,7 @@ export default function HomePage() {
           {/* WhatsApp Quick CTA */}
           <div className="animate-fade-in-up delay-400">
             <a
-              href={`https://wa.me/${COMPANY_INFO.whatsapp}?text=Hi FLYO! I want to grow my business digitally.`}
+              href={`https://wa.me/${COMPANY_INFO.whatsapp}?text=Hi flyoo businesses! I want to grow my business digitally.`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-emerald-400 transition-colors group"
@@ -314,7 +314,7 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════════
-          WHY FLYO - DIFFERENTIATORS SECTION
+          WHY FLYOO BUSINESSES - DIFFERENTIATORS SECTION
       ═══════════════════════════════════════════ */}
       <section className="py-24 bg-white border-y border-slate-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -325,13 +325,13 @@ export default function HomePage() {
               <div className="space-y-4">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold uppercase tracking-wider">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  Why FLYO
+                  Why flyoo businesses
                 </span>
                 <h2 className="text-4xl font-extrabold text-slate-900 leading-tight">
                   "We don't believe every business needs the same digital solution."
                 </h2>
                 <p className="text-slate-600 text-base leading-relaxed">
-                  Too many agencies push massive monthly packages. At FLYO, we evaluate what actually matters for your business and recommend only what makes practical sense to help you grow.
+                  Too many agencies push massive monthly packages. At flyoo businesses, we evaluate what actually matters for your business and recommend only what makes practical sense to help you grow.
                 </p>
               </div>
 
@@ -548,10 +548,10 @@ export default function HomePage() {
               Grow Your Business FAQ
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-              Frequently Asked Questions About Growing Your Business with FLYO
+              Frequently Asked Questions About Growing Your Business with flyoo businesses
             </h2>
             <p className="text-slate-500 text-sm max-w-xl mx-auto">
-              Everything you need to know about scaling your local business online with FLYO web design and SEO strategies.
+              Everything you need to know about scaling your local business online with flyoo businesses web design and SEO strategies.
             </p>
           </div>
 
@@ -602,7 +602,7 @@ export default function HomePage() {
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
                 <a
-                  href={`https://wa.me/${COMPANY_INFO.whatsapp}?text=Hi FLYO! I want to grow my business.`}
+                  href={`https://wa.me/${COMPANY_INFO.whatsapp}?text=Hi flyoo businesses! I want to grow my business.`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-sm hover:bg-emerald-500/30 transition-colors"

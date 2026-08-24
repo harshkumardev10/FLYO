@@ -3,8 +3,8 @@ import { COMPANY_INFO } from '@/lib/data/company';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'FLYO | Make Your Business Fly & Grow Online',
-    short_name: 'FLYO',
+    name: 'flyoo businesses | Make Your Business Fly & Grow Online',
+    short_name: 'flyoo',
     description: COMPANY_INFO.description,
     start_url: '/',
     display: 'standalone',

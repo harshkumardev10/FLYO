@@ -18,6 +18,7 @@ interface RichTextEditorProps {
   placeholder?: string;
   minHeight?: number;
   id?: string;
+  articleTitle?: string;
 }
 
 const HEADING_OPTIONS = [
@@ -68,6 +69,7 @@ export default function RichTextEditor({
   placeholder = 'Type your article content here... (Email-style rich text formatting supported)',
   minHeight = 340,
   id,
+  articleTitle = '',
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
 
@@ -368,7 +370,7 @@ export default function RichTextEditor({
   const openImageModal = () => {
     saveSelection();
     setImageUrlInput('');
-    setImageAltInput('');
+    setImageAltInput(articleTitle ? `${articleTitle} illustration` : '');
     setShowImageModal(true);
     setShowLinkModal(false);
     setIsHeadingOpen(false);
@@ -928,7 +930,7 @@ export default function RichTextEditor({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                  Image Web URL *
+                  Image Web URL (.webp recommended) *
                 </label>
                 <input
                   type="url"
@@ -936,19 +938,19 @@ export default function RichTextEditor({
                   value={imageUrlInput}
                   onChange={(e) => setImageUrlInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleApplyImage(); } }}
-                  placeholder="https://images.unsplash.com/..."
+                  placeholder="https://...image.webp"
                   className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400"
                 />
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                  Alt / Caption Text
+                  Alt Text * (Required for SEO)
                 </label>
                 <input
                   type="text"
                   value={imageAltInput}
                   onChange={(e) => setImageAltInput(e.target.value)}
-                  placeholder="e.g. Organic ranking growth chart"
+                  placeholder="Descriptive alt text for search engines"
                   className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400"
                 />
               </div>
@@ -966,21 +968,26 @@ export default function RichTextEditor({
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={closeImageModal}
-                className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-100 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleApplyImage}
-                className="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm"
-              >
-                Insert Image
-              </button>
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <span className="text-[10px] text-slate-500">
+                🖼️ Image alt text will be saved for accessibility & SEO
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={closeImageModal}
+                  className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyImage}
+                  className="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm"
+                >
+                  Insert Image
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1029,14 +1036,28 @@ export default function RichTextEditor({
 
 
       {/* ── EMAIL COMPOSER BOTTOM STATUS BAR ── */}
-      <div className="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between text-[11px] text-slate-500">
+      <div className="px-4 py-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
         <div className="flex items-center gap-3">
-          <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
+          <span className="font-semibold text-slate-700">{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
           <span>•</span>
           <span>{charCount} characters</span>
+          <span>•</span>
+          {wordCount < 200 ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bold text-[10px]">
+              ⚠️ Min 200 words needed ({200 - wordCount} more)
+            </span>
+          ) : wordCount <= 400 ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+              ✅ Word Count: Optimal (200–400 limit)
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 font-bold text-[10px]">
+              ❌ Exceeds 400 words ({wordCount - 400} over limit)
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 text-slate-400">
-          <span>💡 Select text & press <kbd className="px-1 py-0.5 bg-white border border-slate-300 rounded font-mono text-[10px]">Ctrl+K</kbd> to insert wrapped link</span>
+          <span>💡 Select text & press <kbd className="px-1 py-0.5 bg-white border border-slate-300 rounded font-mono text-[10px]">Ctrl+K</kbd> for link</span>
         </div>
       </div>
     </div>

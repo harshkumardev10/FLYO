@@ -49,7 +49,7 @@ export async function verifyUserPassword(email: string, passwordInput: string): 
 
   const allowed = getAllowedAdminEmails();
   if (!allowed.some(e => e.toLowerCase() === cleanEmail)) {
-    return { valid: false, error: `Access Denied: "${cleanEmail}" is not authorized for FLYO partner access.` };
+    return { valid: false, error: `Access Denied: "${cleanEmail}" is not authorized for flyoo businesses partner access.` };
   }
 
   // 2. Fetch password from Firestore

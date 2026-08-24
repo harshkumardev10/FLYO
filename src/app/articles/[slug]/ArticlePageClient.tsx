@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Calendar, Clock, User, ArrowRight } from 'lucide-react';
+import { Calendar, Clock, User, ArrowRight, HelpCircle, ChevronDown, Sparkles } from 'lucide-react';
 import { getAllArticles, syncFromFirestore } from '@/lib/data/articlesStore';
 import { SERVICES_DATA } from '@/lib/data/services';
 import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import { ArticleItem } from '@/lib/types/seo';
 import { formatContentWithHyperlinks } from '@/lib/utils/formatContent';
+import { getOrGenerateArticleFaqs, FAQItem } from '@/lib/utils/faqGenerator';
 import ShareArticle from '@/components/ui/ShareArticle';
 
 interface ArticlePageClientProps {
@@ -18,6 +19,7 @@ interface ArticlePageClientProps {
 export default function ArticlePageClient({ slug, initialArticle }: ArticlePageClientProps) {
   const [article, setArticle] = useState<ArticleItem | null>(initialArticle);
   const [imgError, setImgError] = useState(false);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0); // First open by default
 
   useEffect(() => {
     const load = () => {
@@ -46,6 +48,7 @@ export default function ArticlePageClient({ slug, initialArticle }: ArticlePageC
     : null;
 
   const formattedHtml = formatContentWithHyperlinks(article.contentHtml);
+  const articleFaqs = article.faqs && article.faqs.length > 0 ? article.faqs.filter((f) => f.question?.trim() && f.answer?.trim()) : [];
 
   return (
     <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 pb-20">
@@ -56,12 +59,12 @@ export default function ArticlePageClient({ slug, initialArticle }: ArticlePageC
         ]}
       />
 
-      {/* Hero Image */}
+      {/* Hero Image with Alt Text & Format */}
       {article.heroImage && !imgError ? (
-        <div className="relative w-full h-64 sm:h-80 md:h-96 rounded-3xl overflow-hidden -mt-2 mb-2 bg-slate-100 border border-slate-200">
+        <div className="relative w-full h-64 sm:h-80 md:h-96 rounded-3xl overflow-hidden -mt-2 mb-2 bg-slate-100 border border-slate-200 shadow-sm">
           <img
             src={article.heroImage}
-            alt={article.title}
+            alt={article.heroImageAlt || article.title}
             onError={() => setImgError(true)}
             className="w-full h-full object-cover"
           />
@@ -113,6 +116,82 @@ export default function ArticlePageClient({ slug, initialArticle }: ArticlePageC
         className="article-content-body prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:tracking-tight prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3 prose-p:text-slate-700 prose-p:leading-[1.8] sm:prose-p:leading-[1.85] prose-p:text-base sm:prose-p:text-lg prose-p:mb-6 prose-strong:font-bold prose-strong:text-slate-900 prose-em:italic prose-em:text-slate-800 prose-a:text-blue-600 prose-a:underline prose-a:font-semibold prose-a:decoration-blue-500/80 prose-a:underline-offset-2 hover:prose-a:text-blue-800 transition-colors font-normal"
         dangerouslySetInnerHTML={{ __html: formattedHtml }}
       />
+
+      {/* ── FREQUENTLY ASKED QUESTIONS (FAQ) SECTION ── */}
+      {articleFaqs && articleFaqs.length > 0 && (
+        <section aria-labelledby="article-faq-heading" className="pt-8 border-t border-slate-200 space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-bold uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Frequently Asked Questions</span>
+              </div>
+              <h2 id="article-faq-heading" className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                Got Questions? Here Are The Answers
+              </h2>
+            </div>
+            <span className="text-xs text-slate-500">
+              {articleFaqs.length} {articleFaqs.length === 1 ? 'question' : 'questions'} answered
+            </span>
+          </div>
+
+          {/* Accordion List */}
+          <div className="space-y-3">
+            {articleFaqs.map((faq, index) => {
+              const isOpen = openFaqIndex === index;
+              return (
+                <div
+                  key={index}
+                  className={`rounded-2xl border transition-all overflow-hidden ${
+                    isOpen
+                      ? 'bg-white border-indigo-300 shadow-md ring-1 ring-indigo-200/60'
+                      : 'bg-slate-50/70 border-slate-200/90 hover:bg-white hover:border-slate-300'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpenFaqIndex(isOpen ? null : index)}
+                    className="w-full px-5 py-4 text-left flex items-center justify-between gap-4 transition-colors"
+                    aria-expanded={isOpen}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold font-mono shrink-0 transition-colors ${
+                          isOpen
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-white text-slate-600 border border-slate-200 shadow-xs'
+                        }`}
+                      >
+                        Q{index + 1}
+                      </span>
+                      <span className="text-sm sm:text-base font-bold text-slate-900 leading-snug">
+                        {faq.question}
+                      </span>
+                    </div>
+                    <div
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-200 ${
+                        isOpen
+                          ? 'rotate-180 bg-indigo-50 text-indigo-700'
+                          : 'bg-slate-100 text-slate-400'
+                      }`}
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </div>
+                  </button>
+
+                  {isOpen && (
+                    <div className="px-5 pb-5 pt-1 text-slate-600 text-sm sm:text-[15px] leading-relaxed border-t border-indigo-100/60 animate-in fade-in duration-150">
+                      <p className="pl-10 text-slate-700 font-normal">
+                        {faq.answer}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Related Service */}
       {relatedService && (

@@ -38,9 +38,17 @@ import {
   Clock3,
   PauseCircle,
   Loader2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  HelpCircle,
+  RefreshCw,
+  Sliders,
+  AlertTriangle,
+  FileCheck2,
+  ChevronUp,
+  Info
 } from 'lucide-react';
-import { uploadImageToCloudinary } from '@/lib/uploadImage';
+import { uploadImageToCloudinary, uploadArticleImageWebP, isWebPFile } from '@/lib/uploadImage';
+import { generateFaqsFromContent, FAQItem } from '@/lib/utils/faqGenerator';
 import RichTextEditor from '@/components/ui/RichTextEditor';
 import { 
   getAllowedAdminEmails, 
@@ -136,14 +144,22 @@ export default function WorkspaceAdminPage() {
 
   // Article Upload Form State
   const [articleTitle, setArticleTitle] = useState('');
+  const [customSlug, setCustomSlug] = useState('');
+  const [isCustomSlugManual, setIsCustomSlugManual] = useState(false);
+  const [metaTitle, setMetaTitle] = useState('');
   const [articleCategory, setArticleCategory] = useState<'SEO' | 'Social Media' | 'Websites' | 'Marketing' | 'Local Business' | 'Design'>('Local Business');
-  const [authorName, setAuthorName] = useState('FLYO Team'); // will be overridden by profile name
+  const [authorName, setAuthorName] = useState('flyoo businesses Team'); // will be overridden by profile name
   const [authorRole, setAuthorRole] = useState('Digital Strategist');
   const [readingTime, setReadingTime] = useState(5);
   const [summary, setSummary] = useState('');
   const [contentHtml, setContentHtml] = useState('');
   const [heroImage, setHeroImage] = useState('https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?q=80&w=1200&auto=format&fit=crop');
+  const [heroImageAlt, setHeroImageAlt] = useState('');
   const [relatedServiceSlug, setRelatedServiceSlug] = useState('web-development');
+  const [faqs, setFaqs] = useState<FAQItem[]>([]);
+  const [faqSuccess, setFaqSuccess] = useState('');
+  const [rulesBannerOpen, setRulesBannerOpen] = useState(true);
+  const [imageFormatNotice, setImageFormatNotice] = useState('');
   const [publishSuccess, setPublishSuccess] = useState(false);
   const [publishError, setPublishError] = useState('');
   const [publishedArticles, setPublishedArticles] = useState<ArticleItem[]>([]);
@@ -152,6 +168,15 @@ export default function WorkspaceAdminPage() {
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  // Helper to count words accurately from HTML content
+  const calculateWordCount = (html: string): number => {
+    const text = html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim();
+    if (!text) return 0;
+    return text.split(/\s+/).filter(Boolean).length;
+  };
+
+  const currentWordCount = calculateWordCount(contentHtml);
 
   const isCurrentPrimaryAdmin = authenticatedEmail?.toLowerCase() === MAIN_ADMIN_EMAIL.toLowerCase();
 
@@ -231,7 +256,7 @@ export default function WorkspaceAdminPage() {
           } else {
             setSavedProfileName('');
             setProfileNameInput('');
-            setAuthorName('FLYO Team');
+            setAuthorName('flyoo businesses Team');
           }
         }
         setAuthError('');
@@ -299,10 +324,27 @@ export default function WorkspaceAdminPage() {
     }
   };
 
+  const handleAddEmptyFaq = () => {
+    setFaqs([...faqs, { question: '', answer: '' }]);
+  };
+
+  const handleUpdateFaq = (index: number, key: 'question' | 'answer', value: string) => {
+    const updated = [...faqs];
+    updated[index] = { ...updated[index], [key]: value };
+    setFaqs(updated);
+  };
+
+  const handleDeleteFaq = (index: number) => {
+    setFaqs(faqs.filter((_, i) => i !== index));
+  };
+
   // Load article into form for editing
   const handleEditArticle = (article: ArticleItem) => {
     setEditingSlug(article.slug);
     setArticleTitle(article.title);
+    setCustomSlug(article.slug);
+    setIsCustomSlugManual(true);
+    setMetaTitle(article.metaTitle || article.title);
     setArticleCategory(article.category);
     setAuthorName(article.authorName);
     setAuthorRole(article.authorRole);
@@ -310,7 +352,9 @@ export default function WorkspaceAdminPage() {
     setSummary(article.summary);
     setContentHtml(article.contentHtml);
     setHeroImage(article.heroImage || '');
+    setHeroImageAlt(article.heroImageAlt || article.title);
     setRelatedServiceSlug(article.relatedServiceSlug || 'web-development');
+    setFaqs(article.faqs && article.faqs.length > 0 ? article.faqs : []);
     setActiveTab('articles');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -319,27 +363,60 @@ export default function WorkspaceAdminPage() {
   const handleCancelEdit = () => {
     setEditingSlug(null);
     setArticleTitle('');
+    setCustomSlug('');
+    setIsCustomSlugManual(false);
+    setMetaTitle('');
     setSummary('');
     setContentHtml('');
     setHeroImage('https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?q=80&w=1200&auto=format&fit=crop');
-    // Restore to profile name (or 'FLYO Team' if no profile name set)
-    setAuthorName(savedProfileName || 'FLYO Team');
+    setHeroImageAlt('');
+    setFaqs([]);
+    // Restore to profile name (or 'flyoo businesses Team' if no profile name set)
+    setAuthorName(savedProfileName || 'flyoo businesses Team');
     setAuthorRole('Digital Strategist');
     setReadingTime(5);
     setRelatedServiceSlug('web-development');
   };
 
-  // Handle Article Publish / Update
+  // Handle Article Publish / Update with Strict Editorial Rules
   const handlePublishArticle = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Strip HTML tags to get actual text length for validation
-    const contentText = contentHtml.replace(/<[^>]*>/g, '').trim();
-    if (!articleTitle || !summary || !contentText) return;
+    setPublishError('');
 
-    const slug = editingSlug || articleTitle
+    // 1. Mandatory Field Validation
+    if (!articleTitle.trim()) {
+      setPublishError('Please enter an Article Title.');
+      return;
+    }
+    if (!summary.trim()) {
+      setPublishError('Please enter a Summary / Meta Description.');
+      return;
+    }
+
+    // 2. Strict Content Word Count Validation (Min 200, Max 400 words)
+    const words = calculateWordCount(contentHtml);
+    if (words < 200) {
+      setPublishError(`❌ Word Count Rule: Article content must have at least 200 words (Current: ${words} words). Please add ${200 - words} more words.`);
+      return;
+    }
+    if (words > 400) {
+      setPublishError(`❌ Word Count Rule: Article content cannot exceed 400 words (Current: ${words} words). Please shorten your content by ${words - 400} words.`);
+      return;
+    }
+
+    // 3. Slug Sanitization & Validation
+    const rawSlug = (customSlug.trim() || editingSlug || articleTitle)
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)+/g, '');
+    const slug = rawSlug || `article-${Date.now()}`;
+
+    // 4. Hero Image & Alt Text
+    const finalHeroAlt = heroImageAlt.trim() || articleTitle.trim();
+
+    // 5. Manual FAQs (Only saved if author added any)
+    const validFaqs = faqs.filter(f => f.question?.trim() && f.answer?.trim());
+    const finalFaqs = validFaqs.length > 0 ? validFaqs : undefined;
 
     const isMainAdmin = authenticatedEmail?.toLowerCase() === MAIN_ADMIN_EMAIL.toLowerCase();
     const existingArt = publishedArticles.find(a => a.slug === slug);
@@ -348,31 +425,32 @@ export default function WorkspaceAdminPage() {
     const articleStatus: 'approved' | 'pending' = isMainAdmin ? 'approved' : 'pending';
 
     const newArticle: ArticleItem = {
-      slug: slug || `article-${Date.now()}`,
-      title: articleTitle,
-      summary,
+      slug,
+      title: articleTitle.trim(),
+      metaTitle: (metaTitle.trim() || articleTitle.trim()),
+      metaDescription: summary.trim(),
+      summary: summary.trim(),
       category: articleCategory,
       publishedAt: editingSlug
         ? (existingArt?.publishedAt || new Date().toISOString().split('T')[0])
         : new Date().toISOString().split('T')[0],
-      authorName,
-      authorRole,
+      authorName: authorName.trim() || 'flyoo businesses Team',
+      authorRole: authorRole.trim() || 'Digital Strategist',
       readingTimeMinutes: Number(readingTime) || 5,
-      heroImage,
+      heroImage: heroImage.trim(),
+      heroImageAlt: finalHeroAlt,
       // Rich editor already outputs HTML — only use formatContentWithHyperlinks for legacy plain-text fallback
       contentHtml: (() => {
         const trimmed = contentHtml.trim();
-        // If it starts with an HTML tag it came from the rich editor — keep it as-is
         if (trimmed.startsWith('<')) return trimmed;
-        // Legacy plain text → auto-format
         return formatContentWithHyperlinks(trimmed);
       })(),
       relatedServiceSlug,
       status: articleStatus,
       submittedBy: existingArt?.submittedBy || authenticatedEmail || 'Partner',
+      faqs: finalFaqs,
     };
 
-    setPublishError('');
     const saved = await saveArticle(newArticle);
     if (saved) {
       setPublishSuccess(true);
@@ -380,8 +458,13 @@ export default function WorkspaceAdminPage() {
       setDynamicArticles(getDynamicArticles());
       setEditingSlug(null);
       setArticleTitle('');
+      setCustomSlug('');
+      setIsCustomSlugManual(false);
+      setMetaTitle('');
       setSummary('');
       setContentHtml('');
+      setHeroImageAlt('');
+      setFaqs([]);
       setActiveTab('manage');
       setTimeout(() => setPublishSuccess(false), 5000);
     } else {
@@ -669,7 +752,7 @@ export default function WorkspaceAdminPage() {
                   <div className="w-full h-full rounded-[22px] bg-white flex items-center justify-center p-4 shadow-inner">
                     <img
                       src="/kingfisher-logo.jpg"
-                      alt="FLYO Kingfisher"
+                      alt="flyoo businesses Kingfisher"
                       className="w-full h-full object-contain filter drop-shadow-[0_15px_30px_rgba(29,78,216,0.45)]"
                     />
                   </div>
@@ -685,7 +768,7 @@ export default function WorkspaceAdminPage() {
                   </span>
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-white to-orange-400">FLYO</span>
+                  Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-white to-orange-400 lowercase">flyoo businesses</span>
                 </h3>
               </div>
             </div>
@@ -714,9 +797,9 @@ export default function WorkspaceAdminPage() {
           <div className="relative z-10 flex items-center justify-between">
             <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#0c183a]/90 border border-blue-500/30 backdrop-blur-xl shadow-lg shadow-blue-950/50">
               <div className="w-7 h-7 rounded-xl overflow-hidden bg-white p-0.5 border border-blue-400 shadow-sm flex items-center justify-center">
-                <img src="/kingfisher-logo.jpg" alt="FLYO" className="w-full h-full object-cover" />
+                <img src="/kingfisher-logo.jpg" alt="flyoo businesses" className="w-full h-full object-cover" />
               </div>
-              <span className="text-white font-black text-sm tracking-wider uppercase">FLYO</span>
+              <span className="text-white font-black text-sm tracking-tight lowercase">flyoo</span>
               <span className="text-[10px] text-orange-400 font-extrabold px-1.5 py-0.5 rounded border border-orange-500/50 bg-orange-950/60">STUDIO</span>
             </div>
 
@@ -741,7 +824,7 @@ export default function WorkspaceAdminPage() {
                 <div className="w-full h-full rounded-[22px] overflow-hidden bg-white flex items-center justify-center p-3 relative shadow-inner">
                   <img
                     src="/kingfisher-logo.jpg"
-                    alt="FLYO Kingfisher"
+                    alt="flyoo businesses Kingfisher"
                     className="w-full h-full object-contain filter drop-shadow-[0_10px_20px_rgba(29,78,216,0.35)] transform transition-transform duration-500 group-hover:scale-105"
                   />
                 </div>
@@ -752,8 +835,8 @@ export default function WorkspaceAdminPage() {
             <div className="space-y-3 max-w-lg">
               <h1 className="text-4xl xl:text-5xl font-black text-white tracking-tight leading-[1.15]">
                 Grow your business with{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-white to-orange-400">
-                  FLYO
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-white to-orange-400 lowercase">
+                  flyoo businesses
                 </span>.
               </h1>
               <p className="text-sm text-blue-100/80 leading-relaxed max-w-md mx-auto">
@@ -781,7 +864,7 @@ export default function WorkspaceAdminPage() {
 
           {/* Bottom Micro Footer */}
           <div className="relative z-10 flex items-center justify-between text-xs text-blue-200/60 pt-4 border-t border-blue-900/40">
-            <span className="tracking-wide font-medium">© {new Date().getFullYear()} FLYO Digital Growth Studio</span>
+            <span className="tracking-wide font-medium">© {new Date().getFullYear()} flyoo businesses Digital Growth Studio</span>
             <span className="text-orange-400 font-mono text-[11px]">v2.4 Partner Build</span>
           </div>
         </div>
@@ -797,9 +880,9 @@ export default function WorkspaceAdminPage() {
           <div className="lg:hidden flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#0c183a] border border-blue-500/30 shadow-md">
               <div className="w-7 h-7 rounded-xl overflow-hidden bg-white p-0.5 border border-blue-400 shadow-sm flex items-center justify-center">
-                <img src="/kingfisher-logo.jpg" alt="FLYO" className="w-full h-full object-cover" />
+                <img src="/kingfisher-logo.jpg" alt="flyoo businesses" className="w-full h-full object-cover" />
               </div>
-              <span className="text-white font-black text-sm tracking-wider uppercase">FLYO</span>
+              <span className="text-white font-black text-sm tracking-tight lowercase">flyoo</span>
               <span className="text-[10px] text-orange-400 font-extrabold px-1.5 py-0.5 rounded border border-orange-500/50 bg-orange-950/60">STUDIO</span>
             </div>
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
@@ -912,14 +995,14 @@ export default function WorkspaceAdminPage() {
                 {/* Divider & Back Link */}
                 <div className="pt-2 border-t border-blue-900/50 text-center space-y-3">
                   <p className="text-[11px] text-blue-200/60">
-                    Restricted to authorized FLYO partners.
+                    Restricted to authorized flyoo businesses partners.
                   </p>
                   <Link
                     href="/"
                     className="inline-flex items-center gap-1.5 text-xs text-white/80 hover:text-orange-400 font-semibold transition-colors"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
-                    <span>Back to FLYO Website</span>
+                    <span>Back to Website</span>
                   </Link>
                 </div>
               </div>
@@ -935,7 +1018,7 @@ export default function WorkspaceAdminPage() {
           </div>
 
           <div className="text-center text-[11px] text-blue-200/40 lg:block hidden">
-            <span>FLYO Digital Partner System</span>
+            <span>flyoo businesses Partner System</span>
           </div>
         </div>
       </div>
@@ -974,7 +1057,7 @@ export default function WorkspaceAdminPage() {
                     <path d="M2 19c2.5-1 5.5-3.5 8.5-8 3 4.5 7.5 6.5 11.5 5.5-3 2.5-6 3.5-10 3.5-4 0-7-1-10-1z"/>
                   </svg>
                 </div>
-                <span className="text-white font-bold text-sm group-hover:text-indigo-300 transition-colors">FLYO</span>
+                <span className="text-white font-bold text-sm group-hover:text-indigo-300 transition-colors lowercase">flyoo</span>
               </Link>
               <span className="text-slate-600">/</span>
               <span className="text-slate-400 text-sm font-medium">Admin Portal</span>
@@ -1024,7 +1107,7 @@ export default function WorkspaceAdminPage() {
                 <Sparkles className="w-4 h-4 text-indigo-200" />
                 <span className="text-xs font-bold uppercase tracking-wider text-indigo-200">Dashboard</span>
               </div>
-              <p className="text-sm font-bold leading-tight">FLYO Admin Workspace</p>
+              <p className="text-sm font-bold leading-tight">flyoo Admin Workspace</p>
               <p className="text-[10px] text-indigo-200">Partner Portal v2.0</p>
             </div>
 
@@ -1083,7 +1166,7 @@ export default function WorkspaceAdminPage() {
                   <span className="font-bold">Article submitted successfully!</span>
                   {' '}
                   {authenticatedEmail?.toLowerCase() === MAIN_ADMIN_EMAIL.toLowerCase()
-                    ? 'It is live on the FLYO articles page.'
+                    ? 'It is live on the flyoo businesses articles page.'
                     : 'It has been sent for approval to harshkumarrr143@gmail.com and will go live once approved.'}
                 </div>
                 <Link href="/articles" className="ml-auto text-xs font-bold text-emerald-700 hover:underline shrink-0">View →</Link>
@@ -1103,6 +1186,149 @@ export default function WorkspaceAdminPage() {
             {/* ═══ TAB: WRITE ARTICLE ═══ */}
             {activeTab === 'articles' && (
               <div className="space-y-6">
+                
+                {/* 📜 EDITORIAL & SEO RULES AND REGULATIONS BANNER */}
+                <div className="rounded-2xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50/90 via-white to-blue-50/70 shadow-sm overflow-hidden transition-all">
+                  <div className="px-5 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center text-indigo-300">
+                        <FileCheck2 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-sm text-white tracking-wide">
+                            flyoo businesses Article Writing Rules & SEO Regulations
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full bg-indigo-500/30 border border-indigo-400/40 text-indigo-200 text-[10px] font-bold uppercase tracking-wider">
+                            Mandatory Standards
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300">
+                          Follow these 6 rules for high search rankings, accessibility, and clean presentation
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setRulesBannerOpen(!rulesBannerOpen)}
+                      className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 transition-colors"
+                    >
+                      <span>{rulesBannerOpen ? 'Minimize Guidelines' : 'Expand Guidelines'}</span>
+                      <ChevronUp className={`w-3.5 h-3.5 transition-transform ${rulesBannerOpen ? '' : 'rotate-180'}`} />
+                    </button>
+                  </div>
+
+                  {rulesBannerOpen && (
+                    <div className="p-5 space-y-4 text-xs text-slate-700 animate-in fade-in duration-200">
+                      {/* Rules Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        
+                        {/* Rule 1: Meta Title & Slug */}
+                        <div className="p-3.5 rounded-xl bg-white border border-indigo-100/80 shadow-xs space-y-1">
+                          <div className="flex items-center gap-2 font-bold text-indigo-950">
+                            <span className="w-5 h-5 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-mono">1</span>
+                            <span>Meta Title & Custom Slug</span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 leading-relaxed">
+                            Catchy SEO title (40–65 chars) and clean hyphenated lowercase URL slug (e.g. <code className="text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">/articles/local-seo-tips</code>).
+                          </p>
+                        </div>
+
+                        {/* Rule 2: Meta Description */}
+                        <div className="p-3.5 rounded-xl bg-white border border-indigo-100/80 shadow-xs space-y-1">
+                          <div className="flex items-center gap-2 font-bold text-indigo-950">
+                            <span className="w-5 h-5 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-mono">2</span>
+                            <span>Meta Description / Excerpt</span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 leading-relaxed">
+                            Compelling 120–160 character summary that summarizes core value and prompts high search click-through rate.
+                          </p>
+                        </div>
+
+                        {/* Rule 3: WebP Image Format Only */}
+                        <div className="p-3.5 rounded-xl bg-white border border-indigo-100/80 shadow-xs space-y-1">
+                          <div className="flex items-center gap-2 font-bold text-indigo-950">
+                            <span className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-mono">3</span>
+                            <span>Image Format (.webp Only)</span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 leading-relaxed">
+                            Hero & content images must be in <strong className="text-emerald-700">.webp</strong> format for lightning-fast Core Web Vitals and top PageSpeed score.
+                          </p>
+                        </div>
+
+                        {/* Rule 4: Mandatory Alt Text */}
+                        <div className="p-3.5 rounded-xl bg-white border border-indigo-100/80 shadow-xs space-y-1">
+                          <div className="flex items-center gap-2 font-bold text-indigo-950">
+                            <span className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-mono">4</span>
+                            <span>Automatic Alt Text</span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 leading-relaxed">
+                            Every image MUST have descriptive Alt text. Uploaded images automatically inherit the <strong>Article Title</strong> as their default alt text.
+                          </p>
+                        </div>
+
+                        {/* Rule 5: Word Limits (200 - 400 words) */}
+                        <div className="p-3.5 rounded-xl bg-white border border-indigo-100/80 shadow-xs space-y-1">
+                          <div className="flex items-center gap-2 font-bold text-indigo-950">
+                            <span className="w-5 h-5 rounded-md bg-amber-100 text-amber-800 flex items-center justify-center text-[10px] font-mono">5</span>
+                            <span>Word Count (200 – 400 words)</span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 leading-relaxed">
+                            Strict length requirement: Minimum <strong>200 words</strong>, Maximum <strong>400 words</strong>. Clear, impactful reading without fluff.
+                          </p>
+                        </div>
+
+                        {/* Rule 6: Manual FAQs */}
+                        <div className="p-3.5 rounded-xl bg-white border border-indigo-100/80 shadow-xs space-y-1">
+                          <div className="flex items-center gap-2 font-bold text-indigo-950">
+                            <span className="w-5 h-5 rounded-md bg-violet-100 text-violet-700 flex items-center justify-center text-[10px] font-mono">6</span>
+                            <span>Manual FAQs (Optional)</span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 leading-relaxed">
+                            Manually add relevant Q&As to display in an interactive accordion below your article with Schema.org FAQPage data.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Live Compliance Status Bar */}
+                      <div className="p-3 rounded-xl bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3 text-[11px]">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-indigo-300">Live Rule Compliance:</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`px-2 py-0.5 rounded-md font-semibold ${articleTitle ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}`}>
+                              {articleTitle ? '✓ Title' : '○ Title'}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-md font-semibold ${summary ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}`}>
+                              {summary ? '✓ Meta Desc' : '○ Meta Desc'}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-md font-semibold ${customSlug || articleTitle ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}`}>
+                              {customSlug || articleTitle ? '✓ Slug' : '○ Slug'}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-md font-semibold ${heroImage ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}`}>
+                              {heroImage ? '✓ .webp Hero & Alt' : '○ Hero Image'}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-md font-semibold ${currentWordCount >= 200 && currentWordCount <= 400 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : currentWordCount < 200 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`}>
+                              {currentWordCount >= 200 && currentWordCount <= 400 ? `✓ Words: ${currentWordCount} (200-400)` : currentWordCount < 200 ? `⚠️ Words: ${currentWordCount}/200` : `❌ Words: ${currentWordCount} (>400)`}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-md font-semibold ${faqs.length > 0 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}`}>
+                              {faqs.length > 0 ? `✓ Manual FAQs (${faqs.length})` : '○ FAQs (Optional)'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleAddEmptyFaq}
+                          className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm shrink-0"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add Manual FAQ</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Editing banner */}
                 {editingSlug && (
                   <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-center gap-3">
@@ -1128,7 +1354,7 @@ export default function WorkspaceAdminPage() {
                       {editingSlug ? 'Edit Article' : 'Write New Article'}
                     </h1>
                     <p className="text-sm text-slate-500 mt-0.5">
-                      {editingSlug ? 'Update the article content and save changes' : 'Publish a new article or guide to the FLYO website'}
+                      {editingSlug ? 'Update the article content, FAQs, and SEO rules' : 'Publish a high-performing article with auto-generated FAQs and SEO metadata'}
                     </p>
                   </div>
                   <button
@@ -1140,7 +1366,7 @@ export default function WorkspaceAdminPage() {
                     }`}
                   >
                     {previewMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    <span>{previewMode ? 'Hide Preview' : 'Show Preview'}</span>
+                    <span>{previewMode ? 'Hide Preview' : 'Show Live Preview'}</span>
                   </button>
                 </div>
 
@@ -1149,28 +1375,115 @@ export default function WorkspaceAdminPage() {
                   {/* Article Form */}
                   <form onSubmit={handlePublishArticle} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                     
-                    {/* Form sections */}
+                    {/* SECTION 1: ARTICLE & SEO METADATA */}
                     <div className="p-6 border-b border-slate-100 space-y-5">
-                      <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Article Details</h2>
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-indigo-600" />
+                          <span>1. Title & SEO Metadata</span>
+                        </h2>
+                        <span className="text-[11px] text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                          Rules 1 & 2
+                        </span>
+                      </div>
                       
+                      {/* Article Title */}
                       <div>
-                        <label htmlFor="title" className={labelClass}>Article Title *</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label htmlFor="title" className={labelClass}>Article Title *</label>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {articleTitle.length} chars
+                          </span>
+                        </div>
                         <input
                           id="title"
                           type="text"
                           required
                           value={articleTitle}
-                          onChange={(e) => setArticleTitle(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setArticleTitle(val);
+                            if (!isCustomSlugManual) {
+                              setCustomSlug(val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
+                            }
+                            if (!metaTitle || metaTitle === articleTitle) {
+                              setMetaTitle(val);
+                            }
+                            if (!heroImageAlt || heroImageAlt === articleTitle) {
+                              setHeroImageAlt(val);
+                            }
+                          }}
                           placeholder="e.g. 5 Local SEO Tips for Restaurants in 2026"
                           className={inputClass}
                         />
-                        {articleTitle && (
-                          <p className="mt-1.5 text-[11px] text-slate-400 font-mono">
-                            Slug: /{articleTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}
-                          </p>
-                        )}
                       </div>
 
+                      {/* Custom Slug & Meta Title Row */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label htmlFor="customSlug" className={labelClass}>
+                              URL Slug *
+                            </label>
+                            {isCustomSlugManual && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsCustomSlugManual(false);
+                                  setCustomSlug(articleTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
+                                }}
+                                className="text-[10px] text-indigo-600 hover:underline font-semibold"
+                              >
+                                Auto-sync from title
+                              </button>
+                            )}
+                          </div>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-mono pointer-events-none">
+                              /articles/
+                            </span>
+                            <input
+                              id="customSlug"
+                              type="text"
+                              required
+                              value={customSlug || articleTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}
+                              onChange={(e) => {
+                                setIsCustomSlugManual(true);
+                                setCustomSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''));
+                              }}
+                              placeholder="article-url-slug"
+                              className={`${inputClass} pl-20 font-mono text-xs`}
+                            />
+                          </div>
+                          <p className="mt-1 text-[10px] text-slate-400">
+                            Permanent public URL address for search indexing
+                          </p>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label htmlFor="metaTitle" className={labelClass}>
+                              Meta Title (SEO)
+                            </label>
+                            <span className={`text-[10px] font-mono ${(metaTitle || articleTitle).length >= 40 && (metaTitle || articleTitle).length <= 65 ? 'text-emerald-600 font-bold' : 'text-slate-400'}`}>
+                              {(metaTitle || articleTitle).length} / 60 chars
+                            </span>
+                          </div>
+                          <input
+                            id="metaTitle"
+                            type="text"
+                            value={metaTitle}
+                            onChange={(e) => setMetaTitle(e.target.value)}
+                            placeholder={articleTitle || 'SEO title displayed on Google search results'}
+                            className={inputClass}
+                          />
+                          <p className="mt-1 text-[10px] text-slate-400">
+                            Optimal search title: 40–65 characters
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Category & Read Time */}
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label htmlFor="category" className={labelClass}>Category</label>
@@ -1194,6 +1507,7 @@ export default function WorkspaceAdminPage() {
                             id="readingTime"
                             type="number"
                             min={1}
+                            max={60}
                             value={readingTime}
                             onChange={(e) => setReadingTime(Number(e.target.value))}
                             className={inputClass}
@@ -1201,30 +1515,40 @@ export default function WorkspaceAdminPage() {
                         </div>
                       </div>
 
+                      {/* Meta Description / Excerpt */}
                       <div>
-                        <label htmlFor="summary" className={labelClass}>Summary / Excerpt *</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label htmlFor="summary" className={labelClass}>
+                            Meta Description / Summary *
+                          </label>
+                          <span className={`text-[10px] font-mono ${summary.length >= 120 && summary.length <= 160 ? 'text-emerald-600 font-bold' : summary.length > 160 ? 'text-rose-500 font-bold' : 'text-slate-400'}`}>
+                            {summary.length} / 160 chars {summary.length >= 120 && summary.length <= 160 ? '• Optimal' : ''}
+                          </span>
+                        </div>
                         <textarea
                           id="summary"
                           rows={2}
                           required
                           value={summary}
                           onChange={(e) => setSummary(e.target.value)}
-                          placeholder="A brief, compelling summary of what readers will learn..."
+                          placeholder="A compelling, keyword-rich summary of 120–160 characters for search snippets..."
                           className={inputClass}
                         />
-                        <p className="mt-1 text-[11px] text-slate-400">{summary.length}/200 characters</p>
+                        <p className="mt-1 text-[10px] text-slate-400 flex items-center justify-between">
+                          <span>Google displays approximately the first 155–160 characters in search results.</span>
+                        </p>
                       </div>
                     </div>
 
+                    {/* SECTION 2: AUTHOR INFO */}
                     <div className="p-6 border-b border-slate-100 space-y-5">
                       <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Author Info</h2>
-                        {/* Profile name setup/status chip */}
+                        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Author Profile</h2>
                         {savedProfileName ? (
                           <div className="flex items-center gap-2">
                             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-semibold">
                               <Lock className="w-3 h-3 text-emerald-500" />
-                              <span>Name auto-filled from your profile</span>
+                              <span>Auto-filled from profile</span>
                             </div>
                             <button
                               type="button"
@@ -1240,7 +1564,7 @@ export default function WorkspaceAdminPage() {
                         ) : (
                           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-semibold">
                             <AlertCircle className="w-3 h-3 text-amber-500" />
-                            <span>Set your profile name once to auto-fill forever</span>
+                            <span>Set profile name once to auto-fill</span>
                           </div>
                         )}
                       </div>
@@ -1317,11 +1641,6 @@ export default function WorkspaceAdminPage() {
                               <Lock className="w-3.5 h-3.5 text-emerald-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                             )}
                           </div>
-                          {savedProfileName && !isEditingProfileName && (
-                            <p className="mt-1 text-[10px] text-emerald-600 font-medium">
-                              ✅ Auto-filled from your saved profile
-                            </p>
-                          )}
                         </div>
                         <div>
                           <label htmlFor="authorRole" className={labelClass}>Author Role</label>
@@ -1336,45 +1655,115 @@ export default function WorkspaceAdminPage() {
                       </div>
                     </div>
 
+                    {/* SECTION 3: ARTICLE CONTENT WITH WORD LIMIT RULE (200 - 400 WORDS) */}
+                    <div className="p-6 border-b border-slate-100 space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                            <PenTool className="w-4 h-4 text-indigo-600" />
+                            <span>2. Article Content Body</span>
+                          </h2>
+                          <p className="text-[11px] text-slate-500">
+                            Strict limit: <strong>Min 200 words, Max 400 words</strong> for optimal search intent.
+                          </p>
+                        </div>
 
-                    <div className="p-6 border-b border-slate-100 space-y-5">
-                      <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Article Content</h2>
-                      
+                        {/* Word Count Live Badge */}
+                        <div className="flex items-center gap-2">
+                          <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 text-xs font-bold ${
+                            currentWordCount >= 200 && currentWordCount <= 400
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                              : currentWordCount < 200
+                              ? 'bg-amber-50 border-amber-300 text-amber-800'
+                              : 'bg-rose-50 border-rose-300 text-rose-800'
+                          }`}>
+                            {currentWordCount >= 200 && currentWordCount <= 400 ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            ) : (
+                              <AlertCircle className="w-4 h-4 text-amber-600" />
+                            )}
+                            <span>{currentWordCount} words</span>
+                            <span className="text-[10px] font-normal opacity-80">(Target: 200–400)</span>
+                          </div>
+                        </div>
+                      </div>
+
                       <div>
-                        <label className={labelClass}>Article Body *</label>
                         <RichTextEditor
                           id="contentHtml"
                           value={contentHtml}
                           onChange={setContentHtml}
-                          placeholder="Write your article content here. Use the toolbar above to add headings, bold text, lists, links, and more..."
-                          minHeight={320}
+                          articleTitle={articleTitle}
+                          placeholder="Write your article content here. Organize with Headings (H2, H3), bold key terms, and bullet points. FAQs will automatically extract from these headings!"
+                          minHeight={340}
                         />
-                        <p className="mt-1.5 text-[11px] text-slate-500">
-                          ✨ Use the toolbar to format your article — headings, bold, lists, links & more. Content is saved exactly as you see it.
-                        </p>
+                      </div>
+
+                      {/* Word Count Feedback Message */}
+                      <div className="flex items-center justify-between text-[11px]">
+                        {currentWordCount < 200 ? (
+                          <p className="text-amber-700 font-semibold flex items-center gap-1">
+                            ⚠️ Content is currently {currentWordCount} words. Need at least 200 words ({200 - currentWordCount} more needed) to publish.
+                          </p>
+                        ) : currentWordCount <= 400 ? (
+                          <p className="text-emerald-700 font-semibold flex items-center gap-1">
+                            ✅ Perfect! Word count ({currentWordCount} words) is within the optimal 200–400 word rule.
+                          </p>
+                        ) : (
+                          <p className="text-rose-700 font-semibold flex items-center gap-1">
+                            ❌ Content exceeds 400 words limit by {currentWordCount - 400} words. Please shorten to meet the 400-word limit.
+                          </p>
+                        )}
+                        <span className="text-slate-400 hidden sm:inline">Rule 5 Enforcement Active</span>
                       </div>
                     </div>
 
+                    {/* SECTION 4: MEDIA & IMAGE STANDARDS (.WEBP ONLY & ALT TEXT) */}
                     <div className="p-6 border-b border-slate-100 space-y-5">
-                      <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Media & Links</h2>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                            <ImageIcon className="w-4 h-4 text-indigo-600" />
+                            <span>3. Hero Image (.webp Format & Alt Text)</span>
+                          </h2>
+                          <p className="text-[11px] text-slate-500">
+                            Strict .webp format for PageSpeed. Uploaded images automatically set Alt text to the Article Title.
+                          </p>
+                        </div>
+                        <span className="text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          Rules 3 & 4
+                        </span>
+                      </div>
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label htmlFor="heroImage" className={labelClass}>Hero Image (Upload or URL)</label>
+                        <div className="space-y-3">
+                          <label htmlFor="heroImage" className={labelClass}>Hero Image (.webp format)</label>
                           
-                          {/* File Upload Button for Cloudinary */}
+                          {/* File Upload Button (.webp only) */}
                           <div className="relative">
                             <input
                               type="file"
-                              accept="image/*"
+                              accept=".webp,image/webp,image/*"
                               onChange={async (e) => {
                                 const file = e.target.files?.[0];
                                 if (!file) return;
                                 setIsUploadingImage(true);
+                                setImageFormatNotice('');
                                 try {
-                                  const url = await uploadImageToCloudinary(file);
-                                  setHeroImage(url);
-                                } catch (err) {
-                                  alert('Image upload failed. Please try again.');
+                                  const res = await uploadArticleImageWebP(file, true);
+                                  setHeroImage(res.url);
+                                  // Automatically set Alt text to Article Title if not already set
+                                  if (!heroImageAlt) {
+                                    setHeroImageAlt(articleTitle || 'Article Feature Graphic');
+                                  }
+                                  setImageFormatNotice(
+                                    res.isConverted
+                                      ? '✅ Image automatically optimized and converted to .webp format!'
+                                      : '✅ Verified valid .webp image uploaded successfully!'
+                                  );
+                                  setTimeout(() => setImageFormatNotice(''), 5000);
+                                } catch (err: any) {
+                                  alert(err.message || 'Image upload failed. Please use a .webp image.');
                                 } finally {
                                   setIsUploadingImage(false);
                                 }
@@ -1384,106 +1773,316 @@ export default function WorkspaceAdminPage() {
                             />
                             <label
                               htmlFor="cloudinaryUploadInput"
-                              className="w-full py-2.5 px-4 rounded-xl border border-dashed border-indigo-300 bg-indigo-50/50 hover:bg-indigo-100/50 text-indigo-700 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all mb-2"
+                              className="w-full py-2.5 px-4 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/60 hover:bg-indigo-100/60 text-indigo-700 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all mb-2 shadow-xs"
                             >
                               <ImageIcon className="w-4 h-4 text-indigo-600" />
-                              <span>{isUploadingImage ? 'Uploading Image...' : '☁️ Upload Photo from Device'}</span>
+                              <span>{isUploadingImage ? 'Converting & Uploading .webp...' : '☁️ Upload Photo (Auto .webp format)'}</span>
                             </label>
                           </div>
+
+                          {imageFormatNotice && (
+                            <p className="text-[11px] text-emerald-700 font-semibold bg-emerald-50 p-2 rounded-lg border border-emerald-200 animate-in fade-in">
+                              {imageFormatNotice}
+                            </p>
+                          )}
 
                           <input
                             id="heroImage"
                             type="text"
                             value={heroImage}
                             onChange={(e) => setHeroImage(e.target.value)}
-                            placeholder="Or paste image URL https://..."
+                            placeholder="Or paste .webp image URL https://..."
                             className={inputClass}
                           />
+
+                          {/* Hero Image Alt Text Input (Mandatory Rule) */}
+                          <div className="pt-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <label htmlFor="heroImageAlt" className={labelClass}>
+                                Image Alt Text * (Auto-filled from Title)
+                              </label>
+                              <span className="text-[10px] text-emerald-600 font-semibold">
+                                ✓ Mandatory for SEO
+                              </span>
+                            </div>
+                            <input
+                              id="heroImageAlt"
+                              type="text"
+                              value={heroImageAlt || (articleTitle ? `${articleTitle} - flyoo Guide` : '')}
+                              onChange={(e) => setHeroImageAlt(e.target.value)}
+                              placeholder="Descriptive image alt text for screen readers & search engines"
+                              className={inputClass}
+                            />
+                            <p className="mt-1 text-[10px] text-slate-400">
+                              🤖 Auto-synced with Article Title. Edit if you want custom descriptive alt text.
+                            </p>
+                          </div>
                           
                           {heroImage && (
-                            <div className="mt-2 rounded-lg overflow-hidden h-20 bg-slate-100 border border-slate-200">
-                              <img src={heroImage} alt="Hero preview" className="w-full h-full object-cover" />
+                            <div className="mt-2 rounded-xl overflow-hidden h-24 bg-slate-100 border border-slate-200 relative group">
+                              <img src={heroImage} alt={heroImageAlt || articleTitle || 'Hero'} className="w-full h-full object-cover" />
+                              <div className="absolute bottom-1 right-2 px-2 py-0.5 rounded bg-slate-900/80 text-white text-[10px] font-mono">
+                                Alt: {heroImageAlt || articleTitle || 'Article Title'}
+                              </div>
                             </div>
                           )}
                         </div>
-                        <div>
-                          <label htmlFor="relatedService" className={labelClass}>Related Service</label>
-                          <select
-                            id="relatedService"
-                            value={relatedServiceSlug}
-                            onChange={(e) => setRelatedServiceSlug(e.target.value)}
-                            className={inputClass}
-                          >
-                            <option value="web-development">Web Development</option>
-                            <option value="promotions">Promotions</option>
-                            <option value="seo">SEO</option>
-                            <option value="social-media">Social Media</option>
-                            <option value="poster-design">Poster Design</option>
-                            <option value="thumbnail-design">Thumbnail Design</option>
-                            <option value="local-business-growth">Local Business Growth</option>
-                          </select>
+
+                        <div className="space-y-4">
+                          <div>
+                            <label htmlFor="relatedService" className={labelClass}>Related flyoo businesses Service</label>
+                            <select
+                              id="relatedService"
+                              value={relatedServiceSlug}
+                              onChange={(e) => setRelatedServiceSlug(e.target.value)}
+                              className={inputClass}
+                            >
+                              <option value="web-development">Web Development</option>
+                              <option value="promotions">Promotions</option>
+                              <option value="seo">SEO</option>
+                              <option value="social-media">Social Media</option>
+                              <option value="poster-design">Poster Design</option>
+                              <option value="thumbnail-design">Thumbnail Design</option>
+                              <option value="local-business-growth">Local Business Growth</option>
+                            </select>
+                            <p className="mt-1.5 text-[11px] text-slate-500">
+                              Displays a matching "Need Help Implementing This?" CTA card at the bottom of the article.
+                            </p>
+                          </div>
+
+                          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-2">
+                            <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                              <Info className="w-3.5 h-3.5 text-indigo-600" />
+                              Image Format Policy
+                            </span>
+                            <p className="text-[11px] leading-relaxed">
+                              Modern search engines penalize heavy PNG and JPG banners. flyoo businesses uses <strong>.webp</strong> to deliver under-50ms load times and optimal mobile experience.
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Submit */}
-                    <div className="p-6 flex gap-3">
+                    {/* SECTION 5: MANUAL FAQS DISPLAYED ON ARTICLE */}
+                    <div className="p-6 border-b border-slate-100 space-y-5 bg-gradient-to-b from-white to-slate-50/50">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                            <HelpCircle className="w-4 h-4 text-indigo-600" />
+                            <span>4. Frequently Asked Questions (Manual / Optional)</span>
+                          </h2>
+                          <p className="text-[11px] text-slate-500">
+                            Manually add custom Q&As to display in an accordion below your article and create Schema.org FAQPage data.
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={handleAddEmptyFaq}
+                            className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add FAQ Question</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {faqSuccess && (
+                        <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold animate-in fade-in flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>{faqSuccess}</span>
+                        </div>
+                      )}
+
+                      {/* FAQs List */}
+                      {faqs.length > 0 ? (
+                        <div className="space-y-3">
+                          {faqs.map((faq, idx) => (
+                            <div key={idx} className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs space-y-2.5 group hover:border-indigo-200 transition-all">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                                  FAQ #{idx + 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteFaq(idx)}
+                                  className="text-slate-400 hover:text-rose-600 p-1 rounded-md transition-colors"
+                                  title="Delete this FAQ"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                                  Question
+                                </label>
+                                <input
+                                  type="text"
+                                  value={faq.question}
+                                  onChange={(e) => handleUpdateFaq(idx, 'question', e.target.value)}
+                                  placeholder="e.g. How does local SEO help small businesses?"
+                                  className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                                  Answer
+                                </label>
+                                <textarea
+                                  rows={2}
+                                  value={faq.answer}
+                                  onChange={(e) => handleUpdateFaq(idx, 'answer', e.target.value)}
+                                  placeholder="A concise, accurate answer of 1–2 sentences..."
+                                  className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-6 rounded-xl border border-dashed border-slate-300 text-center space-y-2 bg-slate-50/50">
+                          <HelpCircle className="w-6 h-6 text-slate-400 mx-auto" />
+                          <p className="text-xs font-bold text-slate-700">No FAQs added for this article</p>
+                          <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                            FAQs are optional. If you want Q&As displayed below your article, click <strong>"Add FAQ Question"</strong> above.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* SUBMIT BUTTONS WITH WORD COUNT VALIDATOR */}
+                    <div className="p-6 flex flex-col sm:flex-row items-center gap-3 bg-slate-50/80">
                       {editingSlug && (
                         <button
                           type="button"
                           onClick={handleCancelEdit}
-                          className="flex-1 py-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition-all flex items-center justify-center gap-2"
+                          className="w-full sm:w-auto px-6 py-4 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-sm transition-all flex items-center justify-center gap-2"
                         >
                           <X className="w-4 h-4" />
-                          <span>Cancel</span>
+                          <span>Cancel Edit</span>
                         </button>
                       )}
                       <button
                         type="submit"
-                        className="flex-1 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30"
+                        disabled={currentWordCount < 200 || currentWordCount > 400}
+                        className={`flex-1 w-full py-4 rounded-xl text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg ${
+                          currentWordCount >= 200 && currentWordCount <= 400
+                            ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/25 hover:shadow-indigo-600/35 cursor-pointer'
+                            : 'bg-slate-400 cursor-not-allowed opacity-75 shadow-none'
+                        }`}
                       >
                         {editingSlug ? <Save className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
-                        <span>{editingSlug ? 'Save Changes' : 'Publish Article to FLYO'}</span>
+                        <span>
+                          {editingSlug
+                            ? (currentWordCount >= 200 && currentWordCount <= 400 ? 'Save & Update Article' : `Word count must be 200–400 words (Current: ${currentWordCount})`)
+                            : (currentWordCount >= 200 && currentWordCount <= 400 ? 'Publish Article to flyoo businesses' : `Word count must be 200–400 words (Current: ${currentWordCount})`)}
+                        </span>
                       </button>
                     </div>
                   </form>
 
-                  {/* Preview Panel */}
+                  {/* PREVIEW PANEL WITH LIVE HERO ALT & FAQ ACCORDION */}
                   {previewMode && (
-                    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-                      <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-                        <Eye className="w-4 h-4 text-slate-500" />
-                        <span className="text-sm font-bold text-slate-700">Live Preview</span>
+                    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm space-y-0 h-fit sticky top-20">
+                      <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Eye className="w-4 h-4 text-indigo-600" />
+                          <span className="text-sm font-bold text-slate-800">Live Article Page Preview</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-500">
+                          /articles/{customSlug || 'article-slug'}
+                        </span>
                       </div>
-                      <div className="p-6 space-y-4">
-                        {/* Article preview */}
+
+                      <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+                        
+                        {/* Hero image preview with Alt badge */}
                         {heroImage && (
-                          <div className="h-40 rounded-xl overflow-hidden bg-slate-100">
-                            <img src={heroImage} alt="Preview" className="w-full h-full object-cover" />
+                          <div className="h-44 rounded-2xl overflow-hidden bg-slate-100 relative border border-slate-200 shadow-inner">
+                            <img
+                              src={heroImage}
+                              alt={heroImageAlt || articleTitle || 'Article hero'}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute top-2 left-2 px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider border border-white/20">
+                              {articleCategory}
+                            </div>
+                            <div className="absolute bottom-2 left-2 right-2 px-2.5 py-1 rounded-lg bg-slate-950/75 backdrop-blur-md text-slate-200 text-[10px] truncate">
+                              Alt: <strong>{heroImageAlt || articleTitle || 'Article Title'}</strong>
+                            </div>
                           </div>
                         )}
-                        <div className="flex items-center gap-2">
-                          <span className="px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold uppercase">{articleCategory}</span>
-                          <span className="text-[11px] text-slate-400">{readingTime} min read</span>
+
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold text-[10px] uppercase border border-indigo-100">
+                            {articleCategory}
+                          </span>
+                          <span>•</span>
+                          <span>{readingTime} min read</span>
+                          <span>•</span>
+                          <span>{currentWordCount} words</span>
                         </div>
-                        <h3 className="text-xl font-extrabold text-slate-900 leading-tight">
-                          {articleTitle || 'Article Title will appear here'}
+
+                        <h3 className="text-2xl font-extrabold text-slate-900 leading-tight">
+                          {articleTitle || 'Your Article Title Will Appear Here'}
                         </h3>
-                        <p className="text-sm text-slate-600">{summary || 'Summary will appear here...'}</p>
-                        <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-                          <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">
-                            {authorName.charAt(0)}
+
+                        {metaTitle && metaTitle !== articleTitle && (
+                          <p className="text-xs text-indigo-600 font-medium">
+                            SEO Title: {metaTitle}
+                          </p>
+                        )}
+
+                        <p className="text-sm text-slate-600 italic border-l-2 border-indigo-500 pl-3">
+                          {summary || 'Your summary / meta description will display here...'}
+                        </p>
+
+                        <div className="flex items-center gap-2.5 pt-3 border-t border-slate-100">
+                          <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">
+                            {(authorName || 'F').charAt(0)}
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-slate-800">{authorName}</p>
-                            <p className="text-[10px] text-slate-400">{authorRole}</p>
+                            <p className="text-xs font-bold text-slate-800">{authorName || 'flyoo businesses Team'}</p>
+                            <p className="text-[10px] text-slate-400">{authorRole || 'Digital Strategist'}</p>
                           </div>
                         </div>
+
+                        {/* Article body */}
                         {contentHtml && (
                           <div
                             className="article-content-body prose prose-sm max-w-none pt-4 border-t border-slate-100 text-slate-700"
                             dangerouslySetInnerHTML={{ __html: formatContentWithHyperlinks(contentHtml) }}
                           />
+                        )}
+
+                        {/* LIVE FAQ SECTION PREVIEW (ONLY WHEN MANUAL FAQS EXIST) */}
+                        {faqs.length > 0 && faqs.some(f => f.question.trim() || f.answer.trim()) && (
+                          <div className="pt-6 border-t-2 border-dashed border-slate-200 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider flex items-center gap-1.5">
+                                <HelpCircle className="w-3.5 h-3.5" />
+                                Frequently Asked Questions
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                Manual FAQs Preview
+                              </span>
+                            </div>
+
+                            {faqs.filter(f => f.question.trim() || f.answer.trim()).map((faq, i) => (
+                              <div key={i} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                                <p className="text-xs font-bold text-slate-900 flex items-start gap-1.5">
+                                  <span className="text-indigo-600 font-mono text-[11px]">Q:</span>
+                                  <span>{faq.question || 'Untitled question'}</span>
+                                </p>
+                                <p className="text-xs text-slate-600 pl-4 leading-relaxed">
+                                  {faq.answer || 'Answer will display here...'}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1499,7 +2098,7 @@ export default function WorkspaceAdminPage() {
                   <div>
                     <h1 className="text-2xl font-extrabold text-slate-900">Add Real Project</h1>
                     <p className="text-sm text-slate-500 mt-0.5">
-                      Publish a real client project to the FLYO portfolio with photos and impact details
+                      Publish a real client project to the flyoo businesses portfolio with photos and impact details
                     </p>
                   </div>
                 </div>
@@ -1869,7 +2468,7 @@ export default function WorkspaceAdminPage() {
               <div className="space-y-6">
                 <div>
                   <h1 className="text-2xl font-extrabold text-slate-900">Partner Access Management</h1>
-                  <p className="text-sm text-slate-500 mt-0.5">Control which email addresses can access the FLYO admin portal</p>
+                  <p className="text-sm text-slate-500 mt-0.5">Control which email addresses can access the flyoo businesses admin portal</p>
                 </div>
 
                 {/* Logged-in session status banner */}

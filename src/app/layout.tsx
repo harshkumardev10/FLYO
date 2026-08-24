@@ -9,25 +9,25 @@ import { COMPANY_INFO } from '@/lib/data/company';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || COMPANY_INFO.url),
-  applicationName: 'FLYO',
+  applicationName: 'flyoo businesses',
   appleWebApp: {
-    title: 'FLYO',
+    title: 'flyoo businesses',
     statusBarStyle: 'default',
     capable: true,
   },
   title: {
-    default: 'FLYO | Grow Your Business Online - Web Design & Local SEO Studio',
-    template: '%s | FLYO',
+    default: 'flyoo businesses | Grow Your Business Online - Web Design & Local SEO Studio',
+    template: '%s | flyoo businesses',
   },
-  description: 'FLYO (also known as flyoo / flyo) is India\'s top student-led digital growth studio founded by Harsh Kumar (GLA University). We build lightning-fast websites, dominate local SEO, and grow your business online.',
+  description: 'flyoo businesses (also known as flyoo / flyo) is India\'s top student-led digital growth studio founded by Harsh Kumar (GLA University). We build lightning-fast websites, dominate local SEO, and grow your business online.',
   keywords: [
     // Growth & Business Intent Core Queries
     'grow business', 'growing business', 'grow your business online', 'how to grow business',
     'grow local business', 'business growth digital studio', 'grow sales online', 'make your business fly',
     'scale business online', 'how to grow small business', 'local business growth strategy',
     // Brand & Query Variants
-    'FLYO', 'flyo', 'flyoo', 'flyoo digital', 'flyo digital', 'flyoo website', 'flyo businesses',
-    'flyoo.vercel.app', 'flyo website', 'FLYO India',
+    'flyoo businesses', 'flyoo', 'flyo', 'flyoo digital', 'flyo digital', 'flyoo website', 'flyo businesses',
+    'flyoo.vercel.app', 'flyo website', 'flyoo businesses India',
     // Founder & University Credentials
     'Harsh Kumar', 'Harsh Kumar GLA University', 'GLA University startup', 'GLA University digital studio',
     'Harsh Kumar Mathura',
@@ -77,10 +77,10 @@ export const metadata: Metadata = {
     google: '6GbxokTcffQ1pNCIp4YUn143TZA9c7D4YZJ3NDhOcOQ',
   },
   openGraph: {
-    title: 'FLYO | Grow Your Business Online - Make Your Business Fly',
-    description: 'FLYO (flyo / flyoo) — Student-led digital studio by Harsh Kumar (GLA University). Fast web development, local SEO ranking & business growth solutions.',
+    title: 'flyoo businesses | Grow Your Business Online - Make Your Business Fly',
+    description: 'flyoo businesses (flyo / flyoo) — Student-led digital studio by Harsh Kumar (GLA University). Fast web development, local SEO ranking & business growth solutions.',
     url: COMPANY_INFO.url,
-    siteName: 'FLYO',
+    siteName: 'flyoo businesses',
     locale: 'en_IN',
     type: 'website',
     images: [
@@ -89,13 +89,13 @@ export const metadata: Metadata = {
         width: 1200,
         height: 630,
         type: 'image/jpeg',
-        alt: 'FLYO - Make Your Business Fly & Grow Online',
+        alt: 'flyoo businesses - Make Your Business Fly & Grow Online',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FLYO | Grow Your Business Online',
+    title: 'flyoo businesses | Grow Your Business Online',
     description: 'Student-led digital studio by Harsh Kumar (GLA University). Web dev, SEO & growth solutions for Indian businesses.',
     site: '@flyodigital',
     creator: '@flyodigital',
@@ -117,9 +117,9 @@ export default function RootLayout({
     <html lang="en" className="scroll-smooth">
       <head>
         <meta name="google-site-verification" content="6GbxokTcffQ1pNCIp4YUn143TZA9c7D4YZJ3NDhOcOQ" />
-        <meta property="og:site_name" content="FLYO" />
-        <meta name="application-name" content="FLYO" />
-        <meta name="apple-mobile-web-app-title" content="FLYO" />
+        <meta property="og:site_name" content="flyoo businesses" />
+        <meta name="application-name" content="flyoo businesses" />
+        <meta name="apple-mobile-web-app-title" content="flyoo businesses" />
 
         {/* Explicit Google Search Favicon Link Tags (48x48 is Google's mandatory size requirement) */}
         <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -141,4 +141,3 @@ export default function RootLayout({
     </html>
   );
 }
-

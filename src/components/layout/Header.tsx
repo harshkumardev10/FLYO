@@ -42,12 +42,12 @@ export function Header() {
         <div className="flex items-center justify-between h-16 sm:h-20">
           
           {/* Logo with Kingfisher Bird Image */}
-          <Link href="/" className="flex items-center gap-3 group" aria-label="FLYO Home">
+          <Link href="/" className="flex items-center gap-3 group" aria-label="flyoo businesses Home">
             {/* Kingfisher Bird Photo Logo */}
             <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg group-hover:shadow-blue-400/50 transition-all duration-300 group-hover:scale-110 flex-shrink-0">
               <Image
                 src="/kingfisher-logo.jpg"
-                alt="FLYO Kingfisher Bird Logo"
+                alt="flyoo businesses Kingfisher Bird Logo"
                 width={48}
                 height={48}
                 className="w-full h-full object-cover"
@@ -55,8 +55,8 @@ export function Header() {
               />
             </div>
             <div className="flex flex-col">
-              <span className="font-extrabold text-xl tracking-wider text-slate-900 group-hover:text-blue-700 transition-colors uppercase leading-none">
-                FLYO
+              <span className="font-extrabold text-xl tracking-tight text-slate-900 group-hover:text-blue-700 transition-colors lowercase leading-none">
+                flyoo <span className="text-indigo-600 text-sm font-bold lowercase tracking-normal">businesses</span>
               </span>
               <span className="text-[10px] font-semibold text-slate-500 tracking-tight">
                 Make Your Business Fly
@@ -91,9 +91,9 @@ export function Header() {
                 title={`Authorized Partner: ${partnerEmail}`}
               >
                 <div className="w-5 h-5 rounded-md overflow-hidden bg-white p-0.5 flex items-center justify-center shadow-sm shrink-0">
-                  <img src="/kingfisher-logo.jpg" alt="FLYO" className="w-full h-full object-cover" />
+                  <img src="/kingfisher-logo.jpg" alt="flyoo businesses" className="w-full h-full object-cover" />
                 </div>
-                <span className="font-black text-xs tracking-wider text-white uppercase">FLYO</span>
+                <span className="font-black text-xs tracking-wider text-white uppercase">flyoo</span>
                 <span className="text-[9px] text-cyan-400 font-extrabold px-1.5 py-0.5 rounded border border-cyan-500/50 bg-cyan-950/60 leading-none">
                   STUDIO
                 </span>
@@ -146,9 +146,9 @@ export function Header() {
             >
               <div className="flex items-center gap-2">
                 <div className="w-5 h-5 rounded-md overflow-hidden bg-white p-0.5 flex items-center justify-center shadow-sm shrink-0">
-                  <img src="/kingfisher-logo.jpg" alt="FLYO" className="w-full h-full object-cover" />
+                  <img src="/kingfisher-logo.jpg" alt="flyoo businesses" className="w-full h-full object-cover" />
                 </div>
-                <span className="font-black text-xs tracking-wider text-white uppercase">FLYO</span>
+                <span className="font-black text-xs tracking-wider text-white uppercase">flyoo</span>
                 <span className="text-[9px] text-cyan-400 font-extrabold px-1.5 py-0.5 rounded border border-cyan-500/50 bg-cyan-950/60 leading-none">
                   STUDIO
                 </span>

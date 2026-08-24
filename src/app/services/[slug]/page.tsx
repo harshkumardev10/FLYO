@@ -27,8 +27,8 @@ export async function generateMetadata({ params }: ServicePageProps) {
   if (!service) return {};
 
   return generateServiceMetadata({
-    title: `${service.title} - Grow Your Business Online | FLYO`,
-    description: `${service.shortDescription} Partner with FLYO to scale and grow your local business with expert ${service.title.toLowerCase()} solutions.`,
+    title: `${service.title} - Grow Your Business Online | flyoo businesses`,
+    description: `${service.shortDescription} Partner with flyoo businesses to scale and grow your local business with expert ${service.title.toLowerCase()} solutions.`,
     canonicalUrl: `/services/${service.slug}`,
   });
 }

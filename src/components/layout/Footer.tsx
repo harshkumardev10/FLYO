@@ -19,8 +19,8 @@ export function Footer() {
                   <path d="M2 19c2.5-1 5.5-3.5 8.5-8 3 4.5 7.5 6.5 11.5 5.5-3 2.5-6 3.5-10 3.5-4 0-7-1-10-1z"/>
                 </svg>
               </div>
-              <span className="font-extrabold text-base tracking-wider text-slate-900 uppercase">
-                FLYO
+              <span className="font-extrabold text-base tracking-tight text-slate-900 lowercase">
+                flyoo <span className="text-indigo-600 font-bold lowercase">businesses</span>
               </span>
             </Link>
             <p className="text-slate-600 leading-relaxed max-w-sm">
@@ -84,7 +84,7 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-12 pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
-          <p>© {new Date().getFullYear()} FLYO Digital Studio. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} flyoo businesses. All rights reserved.</p>
           <p className="text-slate-400">Founded & operated by college students.</p>
         </div>
       </div>

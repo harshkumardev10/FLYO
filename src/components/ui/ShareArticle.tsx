@@ -28,8 +28,8 @@ export default function ShareArticle({ title, summary, slug, heroImage }: ShareA
 
   const articleUrl = `${SITE_BASE}/articles/${slug}`;
   const encodedUrl = encodeURIComponent(articleUrl);
-  const encodedTitle = encodeURIComponent(`FLYO | ${title}`);
-  const shortText = encodeURIComponent(`FLYO | ${title}\n${articleUrl}`);
+  const encodedTitle = encodeURIComponent(`flyoo businesses | ${title}`);
+  const shortText = encodeURIComponent(`flyoo businesses | ${title}\n${articleUrl}`);
 
   // Close on outside click
   useEffect(() => {
@@ -98,7 +98,7 @@ export default function ShareArticle({ title, summary, slug, heroImage }: ShareA
     }
     try {
       await navigator.share({
-        title: `FLYO | ${title}`,
+        title: `flyoo businesses | ${title}`,
         url: articleUrl,
       });
       setNativeShareDone(true);
@@ -121,7 +121,7 @@ export default function ShareArticle({ title, summary, slug, heroImage }: ShareA
 
   // Copy link + image URL — short format
   const handleCopyWithImage = async () => {
-    const text = `FLYO | ${title}\n🔗 ${articleUrl}${heroImage ? `\n🖼️ ${heroImage}` : ''}`;
+    const text = `flyoo businesses | ${title}\n🔗 ${articleUrl}${heroImage ? `\n🖼️ ${heroImage}` : ''}`;
     try {
       await navigator.clipboard.writeText(text);
       setImgCopied(true);

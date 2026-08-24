@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: WorkPageProps): Promise<Metad
 
   if (!project) {
     return {
-      title: 'Project Not Found | FLYO',
+      title: 'Project Not Found | flyoo businesses',
       description: 'The requested project could not be found.',
     };
   }
@@ -57,14 +57,14 @@ export async function generateMetadata({ params }: WorkPageProps): Promise<Metad
   const ogImage = project.heroImage || `${SITE_URL}/kingfisher-logo.jpg`;
 
   return {
-    title: `${project.title} - Case Study | FLYO`,
-    description: `${project.shortDescription} Discover how FLYO built and scaled ${project.title} with high-converting web design and business growth strategies.`,
+    title: `${project.title} - Case Study | flyoo businesses`,
+    description: `${project.shortDescription} Discover how flyoo businesses built and scaled ${project.title} with high-converting web design and business growth strategies.`,
     openGraph: {
       type: 'article',
       url: pageUrl,
-      title: `${project.title} | FLYO Client Case Study`,
+      title: `${project.title} | flyoo businesses Client Case Study`,
       description: project.shortDescription,
-      siteName: 'FLYO',
+      siteName: 'flyoo businesses',
       images: [
         {
           url: ogImage,
@@ -76,7 +76,7 @@ export async function generateMetadata({ params }: WorkPageProps): Promise<Metad
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${project.title} | FLYO`,
+      title: `${project.title} | flyoo businesses`,
       description: project.shortDescription,
       images: [ogImage],
       site: '@flyodigital',
