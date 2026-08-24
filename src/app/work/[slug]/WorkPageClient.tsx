@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, ArrowRight } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Sparkles, TrendingUp, ShieldCheck } from 'lucide-react';
 import { PORTFOLIO_DATA } from '@/lib/data/work';
 import { getAllProjects, syncProjectsFromFirestore } from '@/lib/data/workStore';
 import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
@@ -74,16 +74,39 @@ export default function WorkPageClient({ slug, initialProject }: WorkPageClientP
         <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
           {project.shortDescription}
         </p>
+
+        {project.measurableResult && (
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+            <TrendingUp className="w-4 h-4 text-emerald-600" />
+            <span>{project.measurableResult}</span>
+          </div>
+        )}
       </div>
 
-      {/* Challenge */}
-      {project.challenge && (
-        <section className="p-6 rounded-2xl bg-white border border-slate-200 space-y-2">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-            The Challenge
+      {/* Challenge Section */}
+      <section className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 space-y-3">
+        <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">
+          The Business Challenge
+        </span>
+        <h2 className="text-xl font-bold text-slate-900">
+          Obstacles &amp; Bottlenecks Faced by {project.clientName}
+        </h2>
+        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
+          {project.detailedChallenge || project.challenge}
+        </p>
+      </section>
+
+      {/* Solution Walkthrough */}
+      {project.detailedSolution && (
+        <section className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 space-y-3">
+          <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">
+            Our Strategic Solution
+          </span>
+          <h2 className="text-xl font-bold text-slate-900">
+            How flyoo Delivered Practical Results
           </h2>
           <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-            {project.challenge}
+            {project.detailedSolution}
           </p>
         </section>
       )}
@@ -91,14 +114,14 @@ export default function WorkPageClient({ slug, initialProject }: WorkPageClientP
       {/* What We Did */}
       {project.whatWeDid && project.whatWeDid.length > 0 && (
         <section className="space-y-4">
-          <h2 className="text-xl font-bold text-slate-900">
-            What We Did
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+            Project Scope &amp; Executed Milestones
           </h2>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {project.whatWeDid.map((step, idx) => (
-              <div key={idx} className="p-4 rounded-xl bg-white border border-slate-200 flex items-start gap-3">
+              <div key={idx} className="p-4 rounded-2xl bg-white border border-slate-200 flex items-start gap-3">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span className="text-xs sm:text-sm text-slate-700">{step}</span>
+                <span className="text-xs sm:text-sm text-slate-700 leading-relaxed">{step}</span>
               </div>
             ))}
           </div>
@@ -107,29 +130,44 @@ export default function WorkPageClient({ slug, initialProject }: WorkPageClientP
 
       {/* Final Result */}
       {project.finalResult && (
-        <section className="p-6 rounded-2xl bg-slate-900 text-white space-y-3">
-          <h2 className="text-lg font-bold text-white">Final Result & Impact</h2>
+        <section className="p-6 sm:p-8 rounded-3xl bg-slate-900 text-white space-y-3">
+          <div className="flex items-center gap-2 text-indigo-400 text-xs font-bold uppercase tracking-wider">
+            <Sparkles className="w-4 h-4" />
+            <span>Commercial Outcome</span>
+          </div>
+          <h2 className="text-xl font-bold text-white">Final Result &amp; Impact</h2>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
             {project.finalResult}
           </p>
-          {project.measurableResult && (
-            <div className="pt-2 text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Measured Outcome: {project.measurableResult}</span>
-            </div>
-          )}
+        </section>
+      )}
+
+      {/* Key Takeaways */}
+      {project.keyTakeaways && project.keyTakeaways.length > 0 && (
+        <section className="p-6 sm:p-8 rounded-3xl bg-indigo-50 border border-indigo-100 space-y-3">
+          <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">
+            Key Strategic Takeaways
+          </span>
+          <ul className="space-y-2 text-xs sm:text-sm text-slate-700">
+            {project.keyTakeaways.map((takeaway, idx) => (
+              <li key={idx} className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{takeaway}</span>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
       {/* CTA */}
-      <div className="p-8 rounded-3xl bg-indigo-600 text-white text-center space-y-4 shadow-sm">
-        <h2 className="text-2xl font-extrabold">Want similar results for your local business?</h2>
-        <p className="text-xs text-indigo-100 max-w-md mx-auto leading-relaxed">
-          Let's discuss your business goals and build a clear, effective digital solution.
+      <div className="p-8 sm:p-10 rounded-3xl bg-indigo-600 text-white text-center space-y-4 shadow-sm">
+        <h2 className="text-2xl sm:text-3xl font-extrabold">Want similar results for your business?</h2>
+        <p className="text-xs sm:text-sm text-indigo-100 max-w-md mx-auto leading-relaxed">
+          Let&apos;s discuss your business goals and build a clear, effective digital solution.
         </p>
         <Link
           href="/contact"
-          className="inline-flex items-center gap-1.5 px-6 py-3 rounded-xl bg-white text-indigo-700 font-bold text-xs hover:bg-indigo-50 transition-colors"
+          className="inline-flex items-center gap-1.5 px-6 py-3.5 rounded-xl bg-white text-indigo-700 font-bold text-xs hover:bg-indigo-50 transition-colors shadow-sm"
         >
           <span>Discuss Your Project</span>
           <ArrowRight className="w-4 h-4" />

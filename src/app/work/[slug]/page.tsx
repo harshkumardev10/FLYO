@@ -53,7 +53,13 @@ export async function generateMetadata({ params }: WorkPageProps): Promise<Metad
     };
   }
 
-  const cleanTitle = `${project.title} Case Study`;
+  let cleanTitle = `${project.title} Case Study`
+    .replace(/\s*\|\s*flyoo\s*businesses/gi, '')
+    .replace(/\s*\|\s*flyoo/gi, '')
+    .trim();
+  if (cleanTitle.length > 35) {
+    cleanTitle = cleanTitle.substring(0, 35).trim();
+  }
   let desc = `${project.shortDescription} Discover how flyoo businesses scaled ${project.title}.`;
   if (desc.length > 130) {
     desc = desc.slice(0, 127).trim() + '...';

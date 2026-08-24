@@ -15,7 +15,15 @@ export function generatePageMetadata(data: SEOData): Metadata {
     .replace(/\s*\|\s*flyoo/gi, '')
     .replace(/\s*\|\s*flyo/gi, '')
     .trim();
-  if (!cleanTitle) cleanTitle = 'Business Grow & Local SEO';
+  if (!cleanTitle) cleanTitle = 'Business Grow & SEO';
+
+  // Strict clamp: ensure subpage title is at most 36 chars so that with "%s | flyoo businesses" (19 chars)
+  // the resulting <title> tag is strictly <= 55 characters (ideal for Google search results).
+  if (cleanTitle.length > 36) {
+    const cut = cleanTitle.substring(0, 36);
+    const lastSpace = cut.lastIndexOf(' ');
+    cleanTitle = (lastSpace > 20 ? cut.substring(0, lastSpace) : cut).trim();
+  }
 
   return {
     title: cleanTitle,

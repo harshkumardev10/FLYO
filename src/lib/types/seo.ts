@@ -26,9 +26,13 @@ export interface BreadcrumbItem {
 export interface ServiceItem {
   slug: string;
   title: string;
+  shortTitle?: string;
   shortDescription: string;
+  detailedDescription?: string;
   iconName: string;
   whatWeProvide: string[];
+  keyBenefits?: Array<{ title: string; description: string }>;
+  processSteps?: Array<{ step: string; title: string; description: string }>;
   whoItIsFor: string[];
   exampleDeliverables: string[];
   ourApproach: string;
@@ -42,12 +46,15 @@ export interface WorkProject {
   category: 'Websites' | 'Social Media' | 'Posters' | 'Thumbnails' | 'Branding' | 'Marketing';
   service: string;
   shortDescription: string;
+  detailedChallenge?: string;
+  detailedSolution?: string;
   challenge: string;
   whatWeDid: string[];
   finalResult: string;
   heroImage: string;
   galleryImages?: string[];
   measurableResult?: string;
+  keyTakeaways?: string[];
 }
 
 export interface ArticleItem {

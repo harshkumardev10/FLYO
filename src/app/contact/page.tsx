@@ -2,10 +2,29 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Phone, Mail, MapPin, Send, CheckCircle2, AlertCircle, MessageSquare, Clock, Instagram, Facebook } from 'lucide-react';
+import { Phone, Mail, MapPin, Send, CheckCircle2, AlertCircle, MessageSquare, Clock, Instagram, Facebook, HelpCircle, ShieldCheck, Zap, Sparkles } from 'lucide-react';
 import FlyoLoader from '@/components/ui/FlyoLoader';
 import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import { COMPANY_INFO } from '@/lib/data/company';
+
+const CONTACT_FAQS = [
+  {
+    question: 'How quickly will I receive a response after submitting?',
+    answer: 'We respond to all online inquiries within 2 to 4 hours during normal business hours (Mon–Sat, 9:00 AM – 8:00 PM IST). For urgent inquiries, feel free to call or WhatsApp our founder lead directly at +91 82739 46584.',
+  },
+  {
+    question: 'Is the initial project consultation and website audit free?',
+    answer: 'Yes, 100% free! We will review your current website, Google Business Profile, and local search competitors, providing actionable insights with zero high-pressure sales tactics.',
+  },
+  {
+    question: 'What information should I have ready before contacting?',
+    answer: 'Simply share what your business does, your current website or social links (if any), and what primary goals you want to achieve (e.g., more phone calls, modern website, or promotional posters).',
+  },
+  {
+    question: 'Do you work with businesses outside Uttar Pradesh?',
+    answer: 'Yes! While based at GLA University in Mathura, we collaborate seamlessly with local stores, restaurants, and service providers across all of India via WhatsApp, email, and video calls.',
+  },
+];
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -76,31 +95,35 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 pb-20">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-16 pb-20">
       <Breadcrumbs items={[{ name: 'Contact', item: '/contact' }]} />
 
-      <div className="max-w-2xl space-y-3">
+      {/* Header */}
+      <div className="max-w-3xl space-y-4">
         <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">
-          Get In Touch
+          Direct Founder Access · Fast Turnaround
         </span>
-        <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">
-          Let's talk about your business.
+        <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
+          Let&apos;s talk about growing your business.
         </h1>
-        <p className="text-slate-600 text-sm leading-relaxed">
-          Have a question or need a quote for your project? Send us a message or call/WhatsApp us directly. We respond promptly.
+        <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
+          Have a question about high-speed web design, ranking #1 on Google Maps, or need a custom project quote? Send us a message or call/WhatsApp us directly. We respond promptly and provide straightforward, honest advice.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         
         {/* Contact Form */}
-        <div className="lg:col-span-7 p-8 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-6">
-          <h2 className="text-xl font-bold text-slate-900">Send Us a Message</h2>
+        <div className="lg:col-span-7 p-8 sm:p-10 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-6">
+          <div className="space-y-1">
+            <h2 className="text-2xl font-bold text-slate-900">Send Us a Project Inquiry</h2>
+            <p className="text-xs text-slate-500">Fill out this brief form and our team will get back to you within 2-4 hours.</p>
+          </div>
 
           {submitSuccess && (
             <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 animate-in fade-in">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-              <span>Thank you! Your inquiry has been sent and recorded. We will get back to you shortly.</span>
+              <span>Thank you! Your inquiry has been sent and recorded. We will get back to you shortly with a personalized plan.</span>
             </div>
           )}
 
@@ -138,7 +161,7 @@ export default function ContactPage() {
                   required
                   value={formData.businessName}
                   onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                  placeholder="e.g. Sharma Bakery & Cafe"
+                  placeholder="e.g. Sharma Bakery &amp; Cafe"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-600"
                 />
               </div>
@@ -186,19 +209,19 @@ export default function ContactPage() {
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-600"
               >
                 <option value="Web Development">Web Development</option>
-                <option value="Promotions">Promotions</option>
-                <option value="SEO">SEO</option>
-                <option value="Social Media Handling">Social Media Handling</option>
-                <option value="Poster Design">Poster Design</option>
-                <option value="Thumbnail Design">Thumbnail Design</option>
-                <option value="Local Business Growth Strategy">Local Business Growth Strategy</option>
+                <option value="Promotions">Promotions &amp; Marketing</option>
+                <option value="SEO">Local SEO &amp; Google Maps</option>
+                <option value="Social Media Handling">Social Media Management</option>
+                <option value="Poster Design">Poster &amp; Banner Design</option>
+                <option value="Thumbnail Design">YouTube Thumbnail Design</option>
+                <option value="Local Business Growth Strategy">Business Growth Strategy</option>
                 <option value="Custom Requirement">Custom Requirement / Multiple Services</option>
               </select>
             </div>
 
             <div className="space-y-1.5">
               <label htmlFor="message" className="font-bold text-slate-800">
-                Tell us about your requirement *
+                Tell us about your project requirements *
               </label>
               <textarea
                 id="message"
@@ -206,7 +229,7 @@ export default function ContactPage() {
                 required
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                placeholder="Briefly describe what you'd like to achieve..."
+                placeholder="Briefly describe your business and what you'd like to achieve (e.g. launch new website, increase local customer calls)..."
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:border-indigo-600"
               />
             </div>
@@ -214,14 +237,14 @@ export default function ContactPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+              className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
                 <FlyoLoader size="xs" />
               ) : (
                 <Send className="w-4 h-4" />
               )}
-              <span>{isSubmitting ? 'Sending Inquiry...' : 'Submit Inquiry'}</span>
+              <span>{isSubmitting ? 'Sending Inquiry...' : 'Submit Inquiry & Request Free Audit'}</span>
             </button>
           </form>
         </div>
@@ -316,6 +339,75 @@ export default function ContactPage() {
           </div>
         </div>
       </div>
+
+      {/* What Happens After Reaching Out */}
+      <section className="p-8 sm:p-10 rounded-3xl bg-white border border-slate-200 space-y-6">
+        <div className="space-y-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">
+            Frictionless Process
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+            What Happens After You Contact Us
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500">
+            Here is our straightforward 3-step process when you submit an inquiry:
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-2">
+          <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+            <span className="font-mono text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+              Step 1
+            </span>
+            <h3 className="font-bold text-base text-slate-900">Same-Day Check-in</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              We review your notes and reach out on WhatsApp or email to confirm project goals and gather basic brand assets.
+            </p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+            <span className="font-mono text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+              Step 2
+            </span>
+            <h3 className="font-bold text-base text-slate-900">Free 15-Min Audit &amp; Proposal</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              We audit your competitors, outline clear deliverables, provide exact timelines, and deliver a transparent flat-rate quote.
+            </p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+            <span className="font-mono text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+              Step 3
+            </span>
+            <h3 className="font-bold text-base text-slate-900">Rapid Development &amp; Launch</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Upon approval, we start building immediately and deliver complete prototypes within 5 to 7 business days.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact FAQs */}
+      <section className="space-y-6 pt-4 border-t border-slate-200">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-bold uppercase tracking-wider">
+            <HelpCircle className="w-3.5 h-3.5" />
+            <span>Consultation FAQs</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+            Frequently Asked Questions
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {CONTACT_FAQS.map((faq, idx) => (
+            <div key={idx} className="p-6 rounded-2xl bg-white border border-slate-200 space-y-2">
+              <h3 className="font-bold text-sm sm:text-base text-slate-900">{faq.question}</h3>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{faq.answer}</p>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

@@ -104,10 +104,18 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   }
 
   // Clean title without repeating brand name (layout template will add | flyoo businesses)
-  const cleanTitle = (article.metaTitle || article.title)
+  let cleanTitle = (article.metaTitle || article.title)
     .replace(/\s*\|\s*flyoo\s*businesses/gi, '')
     .replace(/\s*\|\s*flyoo/gi, '')
+    .replace(/\s*\|\s*flyo/gi, '')
     .trim();
+
+  // Strict clamp: max 36 chars so "<cleanTitle> | flyoo businesses" <= 55 chars
+  if (cleanTitle.length > 36) {
+    const cut = cleanTitle.substring(0, 36);
+    const lastSpace = cut.lastIndexOf(' ');
+    cleanTitle = (lastSpace > 20 ? cut.substring(0, lastSpace) : cut).trim();
+  }
 
   // Concise description (110-130 chars)
   let pageDescription = article.metaDescription || article.summary;
