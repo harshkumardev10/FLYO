@@ -2,8 +2,8 @@ import { Metadata } from 'next';
 import { generatePageMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = generatePageMetadata({
-  title: 'Contact flyoo businesses | Start Growing Your Business Today',
-  description: 'Get in touch with flyoo businesses (flyo / flyoo) to grow your business online. Speak directly with founder Harsh Kumar (GLA University) for custom website development, local SEO, and business growth strategy.',
+  title: 'Contact & Consultations',
+  description: 'Get in touch with flyoo businesses (flyoo / flyo) for custom web design, local SEO, and digital business growth.',
   canonicalUrl: '/contact',
 });
 

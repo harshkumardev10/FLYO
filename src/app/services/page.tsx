@@ -6,8 +6,8 @@ import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import { SERVICES_DATA } from '@/lib/data/services';
 
 export const metadata = generatePageMetadata({
-  title: 'Digital Services for Business Growth | flyoo businesses',
-  description: 'Explore practical digital services to grow your business online: High-converting Web Development, Local SEO Ranking, Social Media Marketing, Video Promotions, and Local Business Growth Strategy by flyoo businesses.',
+  title: 'Our Digital Services',
+  description: 'Explore practical digital services to grow your business online: Web Development, Local SEO, Social Media, and Promotions.',
   canonicalUrl: '/services',
 });
 

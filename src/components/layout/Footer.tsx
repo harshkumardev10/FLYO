@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Phone, Mail, MapPin } from 'lucide-react';
+import { Phone, Mail, Instagram, Facebook, Youtube, Linkedin, Twitter, MessageCircle } from 'lucide-react';
 import { COMPANY_INFO } from '@/lib/data/company';
 import { SERVICES_DATA } from '@/lib/data/services';
 
@@ -26,7 +26,77 @@ export function Footer() {
             <p className="text-slate-600 leading-relaxed max-w-sm">
               Make Your Business Fly. A student-led digital services startup helping local businesses build modern web presences, create promotional graphics, and grow organically online.
             </p>
-            <div className="pt-1 text-slate-500 space-y-1">
+            
+            {/* Social Media Follow Buttons */}
+            <div className="pt-2 space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 block">
+                Connect With Us
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={COMPANY_INFO.social.instagram}
+                  target="_blank"
+                  rel="me noopener noreferrer"
+                  aria-label="Follow flyoo businesses on Instagram"
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-gradient-to-tr hover:from-amber-500 hover:via-rose-500 hover:to-purple-600 hover:text-white text-slate-600 flex items-center justify-center transition-all duration-200 shadow-sm hover:scale-110"
+                  title="Follow on Instagram (@flyoobusinesses)"
+                >
+                  <Instagram className="w-4 h-4" />
+                </a>
+                <a
+                  href={COMPANY_INFO.social.facebook}
+                  target="_blank"
+                  rel="me noopener noreferrer"
+                  aria-label="Follow flyoo businesses on Facebook"
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-[#1877F2] hover:text-white text-slate-600 flex items-center justify-center transition-all duration-200 shadow-sm hover:scale-110"
+                  title="Follow on Facebook"
+                >
+                  <Facebook className="w-4 h-4" />
+                </a>
+                <a
+                  href={COMPANY_INFO.social.youtube}
+                  target="_blank"
+                  rel="me noopener noreferrer"
+                  aria-label="Subscribe to flyoo businesses on YouTube"
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-[#FF0000] hover:text-white text-slate-600 flex items-center justify-center transition-all duration-200 shadow-sm hover:scale-110"
+                  title="Subscribe on YouTube"
+                >
+                  <Youtube className="w-4 h-4" />
+                </a>
+                <a
+                  href={COMPANY_INFO.social.twitter}
+                  target="_blank"
+                  rel="me noopener noreferrer"
+                  aria-label="Follow flyoo businesses on X Twitter"
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-black hover:text-white text-slate-600 flex items-center justify-center transition-all duration-200 shadow-sm hover:scale-110"
+                  title="Follow on X (Twitter)"
+                >
+                  <Twitter className="w-4 h-4" />
+                </a>
+                <a
+                  href={COMPANY_INFO.social.linkedin}
+                  target="_blank"
+                  rel="me noopener noreferrer"
+                  aria-label="Connect with flyoo businesses on LinkedIn"
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-[#0A66C2] hover:text-white text-slate-600 flex items-center justify-center transition-all duration-200 shadow-sm hover:scale-110"
+                  title="Connect on LinkedIn"
+                >
+                  <Linkedin className="w-4 h-4" />
+                </a>
+                <a
+                  href={COMPANY_INFO.social.whatsapp}
+                  target="_blank"
+                  rel="me noopener noreferrer"
+                  aria-label="Chat with flyoo businesses on WhatsApp"
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-[#25D366] hover:text-white text-slate-600 flex items-center justify-center transition-all duration-200 shadow-sm hover:scale-110"
+                  title="Chat on WhatsApp"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+
+            <div className="pt-2 text-slate-500 space-y-1">
               <p className="flex items-center gap-2 font-mono">
                 <Phone className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                 <a href="tel:+918273946584" className="hover:text-slate-900">+91 82739 46584</a>

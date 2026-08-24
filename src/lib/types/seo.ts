@@ -58,6 +58,7 @@ export interface ArticleItem {
   summary: string;
   category: 'SEO' | 'Social Media' | 'Websites' | 'Marketing' | 'Local Business' | 'Design';
   publishedAt: string;
+  updatedAt?: string;
   authorName: string;
   authorRole: string;
   readingTimeMinutes: number;
@@ -67,6 +68,7 @@ export interface ArticleItem {
   relatedServiceSlug?: string;
   status?: 'pending' | 'approved';
   submittedBy?: string;
+  keywords?: string[];
   faqs?: Array<{ question: string; answer: string }>;
 }
 

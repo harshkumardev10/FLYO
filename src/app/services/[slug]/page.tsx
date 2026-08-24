@@ -26,9 +26,14 @@ export async function generateMetadata({ params }: ServicePageProps) {
   const service = SERVICES_DATA.find((s) => s.slug === params.slug);
   if (!service) return {};
 
+  let desc = `${service.shortDescription} Grow your local business with ${service.title.toLowerCase()} from flyoo businesses.`;
+  if (desc.length > 130) {
+    desc = desc.slice(0, 127).trim() + '...';
+  }
+
   return generateServiceMetadata({
-    title: `${service.title} - Grow Your Business Online | flyoo businesses`,
-    description: `${service.shortDescription} Partner with flyoo businesses to scale and grow your local business with expert ${service.title.toLowerCase()} solutions.`,
+    title: `${service.title} Services`,
+    description: desc,
     canonicalUrl: `/services/${service.slug}`,
   });
 }

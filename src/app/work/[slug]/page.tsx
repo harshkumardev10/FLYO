@@ -48,22 +48,28 @@ export async function generateMetadata({ params }: WorkPageProps): Promise<Metad
 
   if (!project) {
     return {
-      title: 'Project Not Found | flyoo businesses',
+      title: 'Project Not Found',
       description: 'The requested project could not be found.',
     };
+  }
+
+  const cleanTitle = `${project.title} Case Study`;
+  let desc = `${project.shortDescription} Discover how flyoo businesses scaled ${project.title}.`;
+  if (desc.length > 130) {
+    desc = desc.slice(0, 127).trim() + '...';
   }
 
   const pageUrl = `${SITE_URL}/work/${project.slug}`;
   const ogImage = project.heroImage || `${SITE_URL}/kingfisher-logo.jpg`;
 
   return {
-    title: `${project.title} - Case Study | flyoo businesses`,
-    description: `${project.shortDescription} Discover how flyoo businesses built and scaled ${project.title} with high-converting web design and business growth strategies.`,
+    title: cleanTitle,
+    description: desc,
     openGraph: {
       type: 'article',
       url: pageUrl,
-      title: `${project.title} | flyoo businesses Client Case Study`,
-      description: project.shortDescription,
+      title: cleanTitle,
+      description: desc,
       siteName: 'flyoo businesses',
       images: [
         {
@@ -76,10 +82,10 @@ export async function generateMetadata({ params }: WorkPageProps): Promise<Metad
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${project.title} | flyoo businesses`,
-      description: project.shortDescription,
+      title: cleanTitle,
+      description: desc,
       images: [ogImage],
-      site: '@flyodigital',
+      site: '@flyoobusinesses',
     },
     alternates: {
       canonical: pageUrl,

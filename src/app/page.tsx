@@ -28,8 +28,8 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { generateFAQSchema } from '@/lib/seo/schemas';
 
 export const metadata = generatePageMetadata({
-  title: 'flyoo businesses | Grow Your Business Online - Web Design & Local SEO',
-  description: 'flyoo businesses (flyo / flyoo / flyoo digital) helps local businesses grow online with high-converting web development, local SEO ranking, social media & growth strategy. Make your business fly with flyoo businesses.',
+  title: 'flyoo businesses | Business Grow, Web Design & SEO',
+  description: 'flyoo businesses (flyoo / flyo) helps local businesses grow online with high-converting web design and local SEO.',
   canonicalUrl: '/',
 });
 
@@ -49,26 +49,26 @@ export default function HomePage() {
     {
       step: '01',
       icon: '🔍',
-      title: 'Understand',
-      desc: 'We learn your business, local audience, and growth goals in depth.',
+      title: 'Understand & Audit',
+      desc: 'We analyze your business, local audience, and search keywords to plan your business growth strategy.',
     },
     {
       step: '02',
       icon: '📋',
-      title: 'Plan',
-      desc: 'We map the right digital opportunities that fit your practical needs.',
+      title: 'Plan Conversion Funnels',
+      desc: 'We design high-converting landing pages and map out local SEO opportunities to increase sales and customers.',
     },
     {
       step: '03',
       icon: '⚡',
-      title: 'Create',
-      desc: 'We design and build digital solutions with care and precision.',
+      title: 'Build & Optimize',
+      desc: 'We build lightning-fast websites and launch local SEO optimizations so your business ranks on Google.',
     },
     {
       step: '04',
       icon: '📈',
-      title: 'Improve',
-      desc: 'We track performance and iterate so your business keeps flying.',
+      title: 'Scale & Grow',
+      desc: 'We track keyword rankings, inquiries, and customer calls to help your business continuously fly and grow.',
     },
   ];
 
@@ -88,20 +88,24 @@ export default function HomePage() {
 
   const homepageFaqs = [
     {
-      question: 'How can flyoo businesses help grow my business online?',
-      answer: 'flyoo businesses (flyo / flyoo) builds high-converting modern websites, runs targeted local SEO campaigns, creates video content, and manages social media to help local businesses rank on top of Google and attract more paying customers.',
+      question: 'How to grow business and increase sales and customers online?',
+      answer: 'To grow your business and increase sales and customers online, you need a high-converting mobile-friendly website, top-ranking Local SEO on Google Maps and Google Search, active social media presence, and fast inquiry channels (like direct Click-to-WhatsApp and Click-to-Call buttons). flyoo businesses specializes in setting up this complete growth system for local businesses.',
     },
     {
-      question: 'Why is Local SEO important for growing local businesses?',
-      answer: 'Local SEO ensures that when prospective customers search for services, business growth keywords, or local solutions in your area, your business appears at the top of Google Maps & Google Search results.',
+      question: 'How does flyoo businesses (flyo / flyoo / fly business) help businesses grow?',
+      answer: 'flyoo businesses (also known as flyoo, flyo, fly business) builds custom lightning-fast websites, optimizes your Google Business Profile for top local rankings, creates promotional graphics and videos, and designs conversion funnels to help businesses attract more paying customers every single month.',
     },
     {
-      question: 'What makes flyoo businesses different from traditional agencies?',
-      answer: 'flyoo businesses is a student-led digital studio founded by Harsh Kumar at GLA University. We offer transparent pricing, rapid turnaround times, direct founder communication, and practical strategies focused strictly on ROI and real business growth.',
+      question: 'How to increase sales and customers for a small or local business?',
+      answer: 'The fastest way to increase sales and customers is capturing local intent through Local SEO and Google Maps ranking. When nearby customers search for your services, having an optimized profile and professional website by flyoo businesses converts searchers into direct paying buyers.',
     },
     {
-      question: 'How quickly can flyoo businesses build a website or start growing my business?',
-      answer: 'Our average website delivery is 5-7 business days, and initial SEO optimizations are deployed within 48 hours so your business starts building authority immediately.',
+      question: 'What makes flyoo businesses different from traditional marketing agencies?',
+      answer: 'flyoo businesses is a student-led digital studio founded by Harsh Kumar at GLA University. We offer transparent pricing, rapid 5-7 day turnaround times, direct founder communication, and practical strategies focused strictly on ROI, business growth, and increasing sales.',
+    },
+    {
+      question: 'How quickly can flyoo businesses launch my website and start growing my business?',
+      answer: 'Our average website delivery is 5-7 business days, and initial SEO optimizations are deployed within 48 hours so your business starts building search authority and customer inquiries immediately.',
     },
   ];
 
@@ -539,6 +543,67 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════════
+          BUSINESS GROWTH & INCREASE SALES AUTHORITY SECTION
+      ═══════════════════════════════════════════ */}
+      <section className="py-20 bg-slate-900 text-white border-t border-slate-800">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          <div className="text-center space-y-4 max-w-3xl mx-auto">
+            <span className="px-3.5 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider">
+              Proven Digital Growth Blueprint
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+              How to Grow Your Business &amp; Increase Sales and Customers Online
+            </h2>
+            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+              At <strong className="text-white">flyoo businesses</strong> (flyoo / flyo / fly business), we provide a 4-pillar system specifically engineered to help businesses grow, dominate search engines, and convert everyday online searches into paying customers.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-3 hover:border-indigo-400 transition-all">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-indigo-400 font-bold text-lg">
+                1
+              </div>
+              <h3 className="text-base font-bold text-white">High-Converting Web Presence</h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Build a modern, lightning-fast website optimized for mobile buyers with clear calls-to-action and direct WhatsApp inquiry buttons.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-3 hover:border-indigo-400 transition-all">
+              <div className="w-10 h-10 rounded-xl bg-emerald-600/30 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-lg">
+                2
+              </div>
+              <h3 className="text-base font-bold text-white">Local SEO &amp; Maps Ranking</h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Rank on top of Google Maps and local search when high-intent customers search for your products or services in your area.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-3 hover:border-indigo-400 transition-all">
+              <div className="w-10 h-10 rounded-xl bg-violet-600/30 border border-violet-500/40 flex items-center justify-center text-violet-400 font-bold text-lg">
+                3
+              </div>
+              <h3 className="text-base font-bold text-white">Social Media &amp; Promotions</h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Engage local communities through consistent branding, promotional reels, and targeted campaign creative across Instagram &amp; Facebook.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-3 hover:border-indigo-400 transition-all">
+              <div className="w-10 h-10 rounded-xl bg-amber-600/30 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-lg">
+                4
+              </div>
+              <h3 className="text-base font-bold text-white">Direct Sales Conversion</h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Turn traffic into recurring sales with immediate customer response channels, Google review trust building, and automated inquiry forms.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
           BUSINESS GROWTH FAQ SECTION
       ═══════════════════════════════════════════ */}
       <section className="py-20 bg-white border-t border-slate-200">
@@ -620,12 +685,11 @@ export default function HomePage() {
       </section>
 
       {/* SEO: Founder & Brand Signal — readable by Google & AI crawlers */}
-      <section className="max-w-3xl mx-auto px-4 py-10 text-center space-y-2">
-        <p className="text-xs text-slate-400 leading-relaxed">
-          <strong className="text-slate-500">Flyoo</strong> (also called <em>flyo</em>, <em>flyoo digital</em>, or <em>flyoo businesses</em>) is a digital studio founded by{' '}
-          <strong className="text-slate-500">Harsh Kumar</strong>, a student at{' '}
-          <strong className="text-slate-500">GLA University, Mathura, Uttar Pradesh</strong>.
-          Flyoo helps local Indian businesses grow online — search <strong className="text-slate-500">"flyoo"</strong> to find us.
+      <section className="max-w-4xl mx-auto px-4 py-10 text-center space-y-2">
+        <p className="text-xs text-slate-500 leading-relaxed">
+          <strong className="text-slate-700">flyoo businesses</strong> (also searched as <em>flyoo</em>, <em>flyo</em>, <em>fly business</em>, <em>flyoo digital</em>, or <em>flyo businesses</em>) is the leading student-led digital growth studio founded by{' '}
+          <strong className="text-slate-700">Harsh Kumar</strong> at <strong className="text-slate-700">GLA University, Mathura, Uttar Pradesh</strong>.
+          Looking to <strong className="text-slate-700">grow business</strong>, understand <strong className="text-slate-700">how to grow business online</strong>, or discover <strong className="text-slate-700">how to increase sales and customers</strong>? flyoo businesses provides end-to-end web development, local SEO, and digital growth solutions across India.
         </p>
       </section>
 

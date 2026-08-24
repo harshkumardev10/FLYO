@@ -1,4 +1,4 @@
-import { ArticleItem } from '@/lib/types/seo';
+/*  */import { ArticleItem } from '@/lib/types/seo';
 import { ARTICLES_DATA } from './articles';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, deleteDoc, getDocs, getDoc, collection, onSnapshot } from 'firebase/firestore';
@@ -29,7 +29,7 @@ function writeLocal<T>(key: string, data: T): void {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(key, JSON.stringify(data));
-  } catch (e) {}
+  } catch (e) { }
 }
 
 // In-Memory & Local Storage Cache (Synced live with Firebase Firestore)
@@ -68,7 +68,7 @@ export async function syncFromFirestore(): Promise<void> {
           fetchedEmails = data.emails.map((e: string) => String(e).toLowerCase());
         }
       }
-    } catch (err) {}
+    } catch (err) { }
 
     try {
       const emailsCollSnapshot = await getDocs(collection(db, 'allowed_emails'));
@@ -76,7 +76,7 @@ export async function syncFromFirestore(): Promise<void> {
         const collEmails = emailsCollSnapshot.docs.map(docSnap => docSnap.id.toLowerCase());
         fetchedEmails = Array.from(new Set([...fetchedEmails, ...collEmails]));
       }
-    } catch (err) {}
+    } catch (err) { }
 
     if (fetchedEmails.length > 0) {
       allowedEmailsCache = Array.from(new Set([MAIN_ADMIN_EMAIL.toLowerCase(), ...fetchedEmails]));
@@ -115,7 +115,7 @@ export function getHiddenSlugs(): string[] {
 export function getAllArticles(): ArticleItem[] {
   // Only approved Firestore articles are visible publicly
   const approvedCustom = firestoreArticlesCache.filter(a => a.status === 'approved' || !a.status);
-  
+
   // Slugs that have an approved Firestore version (they replace the static copy)
   const approvedCustomSlugs = approvedCustom.map(a => a.slug);
 
@@ -159,7 +159,7 @@ export async function saveArticle(article: ArticleItem): Promise<boolean> {
     if (db) {
       try {
         await deleteDoc(doc(db, 'hidden_slugs', article.slug));
-      } catch (err) {}
+      } catch (err) { }
     }
   }
 

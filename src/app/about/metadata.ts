@@ -1,20 +1,24 @@
 import type { Metadata } from 'next';
 
 export const aboutMetadata: Metadata = {
-  title: 'About Flyoo | Founded by Harsh Kumar – GLA University Student Startup',
-  description:
-    'Flyoo (also known as flyo or flyoo digital) was founded by Harsh Kumar, a student at GLA University, Mathura. We are a passionate team of college students building India\'s most affordable digital studio for local businesses.',
+  title: 'About Us – Student Startup',
+  description: 'flyoo businesses (flyoo / flyo) is a student-led digital studio founded by Harsh Kumar at GLA University in Mathura.',
   keywords: [
     'flyoo about', 'flyoo founder', 'Harsh Kumar', 'Harsh Kumar GLA University',
     'GLA University startup', 'student startup Mathura', 'flyo digital founder',
     'flyoo digital studio', 'who is flyoo', 'flyoo team',
   ],
   openGraph: {
-    title: 'About Flyoo | Founded by Harsh Kumar – GLA University',
-    description: 'Learn about Flyoo — a student-led startup from GLA University, Mathura, founded by Harsh Kumar to help local Indian businesses grow digitally.',
+    title: 'About Us – Student Startup | flyoo businesses',
+    description: 'flyoo businesses is a student-led digital studio founded by Harsh Kumar at GLA University in Mathura.',
     type: 'website',
   },
   alternates: {
     canonical: 'https://flyoo.vercel.app/about',
+    languages: {
+      'en-IN': 'https://flyoo.vercel.app/about',
+      'en': 'https://flyoo.vercel.app/about',
+      'x-default': 'https://flyoo.vercel.app/about',
+    },
   },
 };

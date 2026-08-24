@@ -14,6 +14,8 @@ export function generateOrganizationSchema() {
         name: COMPANY_INFO.name,
         legalName: COMPANY_INFO.legalName,
         alternateName: COMPANY_INFO.alternateName,
+        disambiguatingDescription:
+          'Official web development and local SEO digital growth studio flyoo businesses (also known as flyoo, flyo, flyyo, fly business) founded by Harsh Kumar at GLA University in Mathura, India.',
         url: COMPANY_INFO.url,
         logo: {
           '@type': 'ImageObject',
@@ -27,6 +29,16 @@ export function generateOrganizationSchema() {
         telephone: COMPANY_INFO.phone,
         foundingDate: COMPANY_INFO.foundingYear,
         sameAs: COMPANY_INFO.sameAs,
+        contactPoint: [
+          {
+            '@type': 'ContactPoint',
+            telephone: COMPANY_INFO.phone,
+            contactType: 'customer service',
+            email: COMPANY_INFO.email,
+            areaServed: 'IN',
+            availableLanguage: ['English', 'Hindi'],
+          },
+        ],
         founder: {
           '@type': 'Person',
           name: COMPANY_INFO.founder.name,
@@ -50,8 +62,19 @@ export function generateOrganizationSchema() {
           'query-input': 'required name=search_term_string',
         },
         knowsAbout: [
-          'Business Growth',
-          'How to Grow Business Online',
+          'flyoo',
+          'flyoo businesses',
+          'flyo',
+          'flyyo',
+          'fly business',
+          'business grow',
+          'grow business',
+          'how grow business',
+          'how to grow business online',
+          'how to increase sales and customers',
+          'how to get more customers',
+          'flyo businesses',
+          'flyoo digital',
           'Local Business Growth Strategy',
           'Web Development India',
           'Local SEO Ranking',
@@ -63,7 +86,7 @@ export function generateOrganizationSchema() {
         ],
       },
       {
-        '@type': 'LocalBusiness',
+        '@type': 'ProfessionalService',
         '@id': `${COMPANY_INFO.url}/#localbusiness`,
         name: COMPANY_INFO.name,
         alternateName: COMPANY_INFO.alternateName,
@@ -71,6 +94,8 @@ export function generateOrganizationSchema() {
         url: COMPANY_INFO.url,
         telephone: COMPANY_INFO.phone,
         email: COMPANY_INFO.email,
+        image: COMPANY_INFO.logo,
+        priceRange: '₹₹',
         address: {
           '@type': 'PostalAddress',
           streetAddress: COMPANY_INFO.address.streetAddress,
@@ -79,10 +104,24 @@ export function generateOrganizationSchema() {
           postalCode: COMPANY_INFO.address.postalCode,
           addressCountry: COMPANY_INFO.address.addressCountry,
         },
-        areaServed: COMPANY_INFO.serviceArea.map(area => ({
+        geo: {
+          '@type': 'GeoCoordinates',
+          latitude: '27.6057',
+          longitude: '77.5933',
+        },
+        openingHoursSpecification: [
+          {
+            '@type': 'OpeningHoursSpecification',
+            dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+            opens: '09:00',
+            closes: '20:00',
+          },
+        ],
+        areaServed: COMPANY_INFO.serviceArea.map((area) => ({
           '@type': 'AdministrativeArea',
           name: area,
         })),
+        sameAs: COMPANY_INFO.sameAs,
         parentOrganization: {
           '@id': `${COMPANY_INFO.url}/#organization`,
         },
@@ -108,11 +147,48 @@ export function generateOrganizationSchema() {
         },
       },
       {
+        '@type': 'ItemList',
+        '@id': `${COMPANY_INFO.url}/#sitelinks`,
+        name: 'Site Navigation Sitelinks',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Services',
+            url: `${COMPANY_INFO.url}/services`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Our Work',
+            url: `${COMPANY_INFO.url}/work`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: 'Articles',
+            url: `${COMPANY_INFO.url}/articles`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 4,
+            name: 'About Us',
+            url: `${COMPANY_INFO.url}/about`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 5,
+            name: 'Contact',
+            url: `${COMPANY_INFO.url}/contact`,
+          },
+        ],
+      },
+      {
         '@type': 'Person',
         '@id': `${COMPANY_INFO.url}/#founder`,
         name: COMPANY_INFO.founder.name,
         jobTitle: COMPANY_INFO.founder.jobTitle,
-        description: `${COMPANY_INFO.founder.name} is the Founder & CEO of Flyo (also known as flyoo), a digital studio started at GLA University in Mathura, India. Flyo helps local businesses grow online with web development, SEO, and social media marketing.`,
+        description: `${COMPANY_INFO.founder.name} is the Founder & CEO of flyoo businesses (also known as flyoo, flyo, flyyo), a digital studio started at GLA University in Mathura, India. flyoo helps businesses grow online with web development, SEO, and social media marketing.`,
         alumniOf: {
           '@type': 'CollegeOrUniversity',
           name: COMPANY_INFO.founder.university,
@@ -187,23 +263,49 @@ export function generateFAQSchema(faqs?: Array<{ question: string; answer: strin
  * Generate Schema.org Article JSON-LD
  */
 export function generateArticleSchema(article: ArticleItem, articleUrl: string) {
+  // Approximate word count from content
+  const textContent = (article.contentHtml || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  const wordCount = textContent ? textContent.split(' ').length : undefined;
+
+  const defaultKeywords = [
+    'flyoo',
+    'flyoo businesses',
+    'business grow',
+    'grow business',
+    'how grow business',
+    'how to increase sales and customers',
+    'local business seo',
+    article.category,
+  ];
+
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
     '@id': `${articleUrl}/#article`,
     headline: article.title,
-    description: article.summary,
-    image: article.heroImage,
+    description: article.metaDescription || article.summary,
+    image: article.heroImage || `${COMPANY_INFO.url}/kingfisher-logo.jpg`,
     datePublished: article.publishedAt,
+    dateModified: article.updatedAt || article.publishedAt || new Date().toISOString().split('T')[0],
+    inLanguage: 'en-IN',
+    articleSection: article.category,
+    keywords: Array.from(new Set([...(article.keywords || []), ...defaultKeywords])).join(', '),
+    ...(wordCount ? { wordCount } : {}),
     author: {
       '@type': 'Person',
-      name: article.authorName,
-      jobTitle: article.authorRole,
+      name: article.authorName || COMPANY_INFO.founder.name,
+      jobTitle: article.authorRole || 'Digital Strategist',
+      url: `${COMPANY_INFO.url}/about`,
     },
     publisher: {
       '@type': 'Organization',
       '@id': `${COMPANY_INFO.url}/#organization`,
       name: COMPANY_INFO.name,
+      url: COMPANY_INFO.url,
+      logo: {
+        '@type': 'ImageObject',
+        url: COMPANY_INFO.logo,
+      },
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
@@ -211,3 +313,4 @@ export function generateArticleSchema(article: ArticleItem, articleUrl: string) 
     },
   };
 }
+

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Phone, Mail, MapPin, Send, CheckCircle2, AlertCircle, MessageSquare, Clock } from 'lucide-react';
+import { Phone, Mail, MapPin, Send, CheckCircle2, AlertCircle, MessageSquare, Clock, Instagram, Facebook } from 'lucide-react';
 import FlyoLoader from '@/components/ui/FlyoLoader';
 import { Breadcrumbs } from '@/components/seo/Breadcrumbs';
 import { COMPANY_INFO } from '@/lib/data/company';
@@ -284,6 +284,33 @@ export default function ContactPage() {
                   <span className="text-[11px] text-slate-400 font-bold uppercase block">Inquiry Response Time</span>
                   <span className="text-xs text-slate-300">Mon - Sat: 9:00 AM - 8:00 PM IST (Prompt response)</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Social Media Channels */}
+            <div className="pt-4 border-t border-slate-800 space-y-3">
+              <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider block">
+                Official Social Media
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <a
+                  href={COMPANY_INFO.social.instagram}
+                  target="_blank"
+                  rel="me noopener noreferrer"
+                  className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-gradient-to-tr hover:from-amber-600 hover:via-rose-600 hover:to-purple-600 border border-slate-700/60 hover:border-transparent text-slate-200 hover:text-white transition-all duration-200 group text-xs font-semibold"
+                >
+                  <Instagram className="w-4 h-4 text-rose-400 group-hover:text-white transition-colors shrink-0" />
+                  <span className="truncate">@flyoobusinesses</span>
+                </a>
+                <a
+                  href={COMPANY_INFO.social.facebook}
+                  target="_blank"
+                  rel="me noopener noreferrer"
+                  className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-[#1877F2] border border-slate-700/60 hover:border-transparent text-slate-200 hover:text-white transition-all duration-200 group text-xs font-semibold"
+                >
+                  <Facebook className="w-4 h-4 text-blue-400 group-hover:text-white transition-colors shrink-0" />
+                  <span className="truncate">Facebook Page</span>
+                </a>
               </div>
             </div>
           </div>

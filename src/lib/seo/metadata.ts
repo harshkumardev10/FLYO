@@ -9,15 +9,24 @@ export function generatePageMetadata(data: SEOData): Metadata {
     ? (data.canonicalUrl.startsWith('http') ? data.canonicalUrl : `${BASE_URL}${data.canonicalUrl}`)
     : BASE_URL;
 
-  const title = data.title.includes(COMPANY_INFO.name)
-    ? data.title
-    : `${data.title} | ${COMPANY_INFO.name}`;
+  // Clean title to prevent duplicate "| flyoo businesses" suffixes and keep strictly under 55 chars
+  let cleanTitle = data.title
+    .replace(/\s*\|\s*flyoo\s*businesses/gi, '')
+    .replace(/\s*\|\s*flyoo/gi, '')
+    .replace(/\s*\|\s*flyo/gi, '')
+    .trim();
+  if (!cleanTitle) cleanTitle = 'Business Grow & Local SEO';
 
   return {
-    title,
+    title: cleanTitle,
     description: data.description,
     alternates: {
       canonical,
+      languages: {
+        'en-IN': canonical,
+        'en': canonical,
+        'x-default': canonical,
+      },
     },
     robots: data.noindex
       ? {
@@ -41,7 +50,7 @@ export function generatePageMetadata(data: SEOData): Metadata {
           },
         },
     openGraph: {
-      title: data.openGraph?.title || title,
+      title: data.openGraph?.title || cleanTitle,
       description: data.openGraph?.description || data.description,
       url: canonical,
       siteName: COMPANY_INFO.name,
@@ -57,10 +66,10 @@ export function generatePageMetadata(data: SEOData): Metadata {
     },
     twitter: {
       card: 'summary_large_image',
-      title: data.openGraph?.title || title,
+      title: data.openGraph?.title || cleanTitle,
       description: data.openGraph?.description || data.description,
-      site: '@flyodigital',
-      creator: '@flyodigital',
+      site: '@flyoobusinesses',
+      creator: '@flyoobusinesses',
       images: [data.openGraph?.images?.[0]?.url || `${BASE_URL}/kingfisher-logo.jpg`],
     },
   };
